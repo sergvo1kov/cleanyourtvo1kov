@@ -40,6 +40,31 @@ final class Http {
         }
     }
 
+    static Response post(String url, Map<String, String> headers, String body, int timeoutMs) throws IOException {
+        HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+        try {
+            byte[] data = body.getBytes(StandardCharsets.UTF_8);
+            c.setConnectTimeout(timeoutMs);
+            c.setReadTimeout(timeoutMs);
+            c.setDoOutput(true);
+            c.setRequestMethod("POST");
+            c.setRequestProperty("User-Agent", "Dim-TV/1.0 (Android TV home widget)");
+            c.setRequestProperty("Content-Type", "application/json");
+            if (headers != null) {
+                for (Map.Entry<String, String> h : headers.entrySet()) c.setRequestProperty(h.getKey(), h.getValue());
+            }
+            c.setFixedLengthStreamingMode(data.length);
+            try (java.io.OutputStream out = c.getOutputStream()) {
+                out.write(data);
+            }
+            int code = c.getResponseCode();
+            InputStream in = code >= 400 ? c.getErrorStream() : c.getInputStream();
+            return new Response(code, in == null ? "" : read(in));
+        } finally {
+            c.disconnect();
+        }
+    }
+
     static String read(InputStream in) throws IOException {
         try (InputStream s = in) {
             ByteArrayOutputStream out = new ByteArrayOutputStream();

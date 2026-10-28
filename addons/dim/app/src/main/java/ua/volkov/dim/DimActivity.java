@@ -312,6 +312,14 @@ public final class DimActivity extends Activity {
     }
 
     private void renderDevices(SharedPreferences p) {
+        View focused = getCurrentFocus();
+        int keepRow = -1, keepCol = -1;
+        if (focused != null && focused.getParent() instanceof ViewGroup
+                && focused.getParent().getParent() == devices) {
+            ViewGroup row = (ViewGroup) focused.getParent();
+            keepRow = devices.indexOfChild(row);
+            keepCol = row.indexOfChild(focused);
+        }
         devices.removeAllViews();
         if (Store.str(this, Store.TUYA_ID).isEmpty()) {
             devices.addView(text("Добавьте Tuya Access ID и Access Secret в Настройках", 15, FAINT, false));
@@ -337,7 +345,11 @@ public final class DimActivity extends Activity {
                 r = row();
                 devices.addView(r, margins(0, 0, 0, 16));
             }
-            LinearLayout c = card(v -> Refresher.kick(this, true));
+            final String devId = d.optString("id");
+            final String sw = d.optString("switch_code");
+            final boolean on = d.optBoolean("switch_on");
+            final String devName = d.optString("name");
+            LinearLayout c = card(v -> toggle(devId, devName, sw, on));
             c.setMinimumHeight(px(96));
             TextView name = text(d.optString("name"), 17, WHITE, true);
             name.setSingleLine(true);
@@ -348,8 +360,18 @@ public final class DimActivity extends Activity {
             TextView s = text(sum.isEmpty() ? "—" : sum, 14, online ? DIM : 0xFFFF9F0A, false);
             s.setMaxLines(2);
             c.addView(s, margins(0, 6, 0, 0));
+            if (!sw.isEmpty() && online) {
+                TextView st = text(on ? "● Включено  ·  OK — выключить" : "○ Выключено  ·  OK — включить", 13,
+                        on ? 0xFF32D74B : FAINT, false);
+                c.addView(st, margins(0, 8, 0, 0));
+            }
             if (!online) c.setAlpha(0.6f);
             r.addView(c, weight(1, 0, 0, i % 4 == 3 ? 0 : 16, 0));
+        }
+        // the remote stays on the same tile across a refresh
+        if (keepRow >= 0 && keepRow < devices.getChildCount() && devices.getChildAt(keepRow) instanceof ViewGroup) {
+            ViewGroup row = (ViewGroup) devices.getChildAt(keepRow);
+            if (keepCol >= 0 && keepCol < row.getChildCount()) row.getChildAt(keepCol).requestFocus();
         }
         // keep the last row's tiles the same width as full rows
         if (r != null) {
@@ -397,6 +419,33 @@ public final class DimActivity extends Activity {
                     render();
                     netHint.setText("Не удалось: " + e.getMessage());
                 });
+            }
+        }).start();
+    }
+
+    private void toggle(String devId, String name, String code, boolean on) {
+        if (code == null || code.isEmpty() || devId.isEmpty()) {
+            new AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
+                    .setTitle(name)
+                    .setMessage("Это датчик: его можно только смотреть. Обновляю данные.")
+                    .setPositiveButton("OK", null).show();
+            Refresher.kick(this, true);
+            return;
+        }
+        String id = Store.str(this, Store.TUYA_ID), secret = Store.str(this, Store.TUYA_SECRET);
+        android.widget.Toast.makeText(this, (on ? "Выключаю: " : "Включаю: ") + name, android.widget.Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            try {
+                Tuya.command(id, secret, devId, code, !on);
+                // the cloud needs a moment before the new state reads back
+                Thread.sleep(1200);
+                Store.prefs(this).edit().putLong(Store.TUYA_AT, 0).apply();
+                Refresher.kick(this, true);
+            } catch (Exception e) {
+                main.post(() -> new AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
+                        .setTitle(name)
+                        .setMessage("Не удалось: " + e.getMessage())
+                        .setPositiveButton("OK", null).show());
             }
         }).start();
     }

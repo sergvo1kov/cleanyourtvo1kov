@@ -50,6 +50,7 @@ final class Tuya {
             row.put("online", d.optBoolean("isOnline", d.optBoolean("online", true)));
             row.put("category", d.optString("category"));
             row.put("summary", "");
+            row.put("id", devId);
             byId.put(devId, row);
         }
         try {
@@ -59,7 +60,14 @@ final class Tuya {
                 for (int i = 0; i < sa.length(); i++) {
                     JSONObject s = sa.getJSONObject(i);
                     JSONObject row = byId.get(s.optString("id"));
-                    if (row != null) row.put("summary", summary(s.optJSONArray("status")));
+                    if (row == null) continue;
+                    JSONArray codes = s.optJSONArray("status");
+                    row.put("summary", summary(codes));
+                    String sw = switchCode(codes);
+                    if (sw != null) {
+                        row.put("switch_code", sw);
+                        row.put("switch_on", switchValue(codes, sw));
+                    }
                 }
             }
         } catch (IOException e) {
@@ -67,6 +75,61 @@ final class Tuya {
         }
         for (JSONObject row : byId.values()) out.put(row);
         return out;
+    }
+
+    private static final String[] SWITCHES = {"switch_led", "switch_1", "switch", "switch_led_1", "power", "switch_2"};
+
+    /** The on/off data point OK toggles, or null when the device has none (a sensor). */
+    static String switchCode(JSONArray status) {
+        if (status == null) return null;
+        for (String want : SWITCHES) {
+            for (int i = 0; i < status.length(); i++) {
+                JSONObject o = status.optJSONObject(i);
+                if (o != null && want.equals(o.optString("code")) && o.opt("value") instanceof Boolean) return want;
+            }
+        }
+        return null;
+    }
+
+    private static boolean switchValue(JSONArray status, String code) {
+        for (int i = 0; i < status.length(); i++) {
+            JSONObject o = status.optJSONObject(i);
+            if (o != null && code.equals(o.optString("code"))) return o.optBoolean("value");
+        }
+        return false;
+    }
+
+    /** Sends one data point to a device, e.g. switch_1 = true. */
+    static synchronized void command(String id, String secret, String devId, String code, Object value)
+            throws IOException, JSONException {
+        ensureToken(id, secret);
+        JSONObject cmd = new JSONObject().put("code", code).put("value", value);
+        String body = new JSONObject().put("commands", new JSONArray().put(cmd)).toString();
+        String path = "/v1.0/iot-03/devices/" + devId + "/commands";
+        JSONObject r = post(id, secret, path, body);
+        if (!r.optBoolean("success", false) && r.optInt("code") == 1010) {
+            tokenUntil = 0;
+            ensureToken(id, secret);
+            r = post(id, secret, path, body);
+        }
+        if (!r.optBoolean("success", false)) {
+            throw new IOException("Tuya: " + r.optString("msg", "ошибка") + " (" + r.optInt("code") + ")");
+        }
+    }
+
+    private static JSONObject post(String id, String secret, String path, String body) throws IOException, JSONException {
+        String t = String.valueOf(System.currentTimeMillis());
+        String nonce = UUID.randomUUID().toString();
+        String stringToSign = "POST\n" + sha256(body) + "\n\n" + path;
+        String sign = hmac(secret, id + token + t + nonce + stringToSign);
+        Map<String, String> h = new HashMap<>();
+        h.put("client_id", id);
+        h.put("sign", sign);
+        h.put("t", t);
+        h.put("nonce", nonce);
+        h.put("sign_method", "HMAC-SHA256");
+        h.put("access_token", token);
+        return new JSONObject(Http.post(BASE + path, h, body, 15_000).body);
     }
 
     /** The values worth a glance, in plain words: "22.5° · 45% · батарея 80%". */
