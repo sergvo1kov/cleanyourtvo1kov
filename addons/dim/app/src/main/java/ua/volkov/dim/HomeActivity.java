@@ -548,20 +548,32 @@ public final class HomeActivity extends Activity {
     private void readBluetooth() {
         io.execute(() -> {
             BtStatus.Info b = BtStatus.read(getApplicationContext());
+            if (b.remote && b.remoteBattery < 0) BtStatus.readRemoteBattery(getApplicationContext(), b.remoteDevice, this::readBluetooth);
             main.post(() -> {
                 if (b.remote) {
                     chipRemote.setVisibility(View.VISIBLE);
-                    chipRemote.setText(b.remoteBattery >= 0 ? "Пульт  " + b.remoteBattery + "%" : "Пульт");
+                    chipRemote.setText(b.remoteBattery >= 0 ? b.remoteBattery + "%" : "");
                 } else {
                     chipRemote.setVisibility(View.GONE);
                 }
+                // sound: speaker + "TV", or speaker + headphones (+ their battery)
+                setChipIcon(chipSound, R.drawable.ic_tv_sound);
                 if (b.phones) {
-                    setChipIcon(chipSound, R.drawable.ic_headphones);
-                    String n = b.phonesName.length() > 18 ? b.phonesName.substring(0, 17) + "…" : b.phonesName;
-                    chipSound.setText(b.phonesBattery >= 0 ? n + "  " + b.phonesBattery + "%" : n);
+                    Drawable hp = getDrawable(R.drawable.ic_headphones);
+                    if (hp != null) {
+                        hp = hp.mutate();
+                        hp.setTint(sub);
+                        hp.setBounds(0, 0, px(14), px(14));
+                        android.text.SpannableString t = new android.text.SpannableString(
+                                "  " + (b.phonesBattery >= 0 ? " " + b.phonesBattery + "%" : ""));
+                        t.setSpan(new android.text.style.ImageSpan(hp, android.text.style.ImageSpan.ALIGN_BOTTOM),
+                                0, 1, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        chipSound.setText(t);
+                    } else {
+                        chipSound.setText(b.phonesBattery >= 0 ? b.phonesBattery + "%" : "");
+                    }
                 } else {
-                    setChipIcon(chipSound, R.drawable.ic_tv_sound);
-                    chipSound.setText("Звук: телевизор");
+                    chipSound.setText("TV");
                 }
             });
         });
