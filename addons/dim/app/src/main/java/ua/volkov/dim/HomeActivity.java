@@ -206,7 +206,7 @@ public final class HomeActivity extends Activity {
 
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
-        col.setPadding(px(52), px(22), px(52), px(34));
+        col.setPadding(px(52), px(22), px(52), px(40));
         col.setClipChildren(false);
         col.setClipToPadding(false);
         root.addView(col, new FrameLayout.LayoutParams(-1, -1));
@@ -306,15 +306,17 @@ public final class HomeActivity extends Activity {
         // hint bar: pinned to the bottom edge, never pushed off screen by the blocks above
         LinearLayout hintBar = new LinearLayout(this);
         hintBar.setOrientation(LinearLayout.VERTICAL);
+        // a fade under the hints, so nothing scrolling below can show through them
+        hintBar.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+                light ? new int[]{0x00D3DCEA, 0xF2D3DCEA, 0xFFD3DCEA} : new int[]{0x00121029, 0xF2121029, 0xFF121029}));
+        hintBar.setPadding(px(52), px(16), px(52), px(10));
         View rule = new View(this);
         rule.setBackgroundColor(line);
         hintBar.addView(rule, new LinearLayout.LayoutParams(-1, 1));
         hint = text("◉  Открыть        ◎  Удерживай OK — переставить или убрать", 10, sub, false);
         hint.setPadding(0, px(6), 0, 0);
         hintBar.addView(hint);
-        FrameLayout.LayoutParams hb = new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM);
-        hb.setMargins(px(52), 0, px(52), px(10));
-        root.addView(hintBar, hb);
+        root.addView(hintBar, new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM));
 
         // all apps page
         appsPage = new ScrollView(this);
@@ -322,7 +324,7 @@ public final class HomeActivity extends Activity {
         appsPage.setClipToPadding(false);
         appsGrid = new LinearLayout(this);
         appsGrid.setOrientation(LinearLayout.VERTICAL);
-        appsGrid.setPadding(px(8), px(14), px(8), px(20));
+        appsGrid.setPadding(px(8), px(14), px(8), px(36));
         appsGrid.setClipToPadding(false);
         appsGrid.setClipChildren(false);
         appsPage.addView(appsGrid);
@@ -362,6 +364,8 @@ public final class HomeActivity extends Activity {
 
     private void showApps(boolean apps) {
         selectTab(apps);
+        if (hint != null) hint.setText(apps ? "◉  Открыть        ◎  Удерживай OK — добавить в избранное или убрать"
+                : "◉  Открыть        ◎  Удерживай OK — переставить или убрать");
         homePage.setVisibility(apps ? View.GONE : View.VISIBLE);
         appsPage.setVisibility(apps ? View.VISIBLE : View.GONE);
         if (apps) {
