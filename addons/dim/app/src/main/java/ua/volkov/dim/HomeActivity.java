@@ -80,6 +80,9 @@ public final class HomeActivity extends Activity {
     private ScrollView appsPage;
     private LinearLayout appsGrid;
     private TextView caption, dateLine, alertPill;
+    private View statusDot;
+    private GradientDrawable dotShape;
+    private boolean pulsing;
     private TextView tabHome, tabApps;
     private FrameLayout hero;
     private String heroMode = "";
@@ -213,12 +216,13 @@ public final class HomeActivity extends Activity {
         LinearLayout logo = new LinearLayout(this);
         logo.setGravity(Gravity.CENTER_VERTICAL);
         logo.addView(text("Дом", 17, txt, true));
-        View dot = new View(this);
-        GradientDrawable dg = new GradientDrawable();
-        dg.setShape(GradientDrawable.OVAL);
-        dg.setColor(0xFF32D74B);
-        dot.setBackground(dg);
-        LinearLayout.LayoutParams dl = new LinearLayout.LayoutParams(px(5), px(5));
+        statusDot = new View(this);
+        dotShape = new GradientDrawable();
+        dotShape.setShape(GradientDrawable.OVAL);
+        dotShape.setColor(0xFF8E8E93);
+        statusDot.setBackground(dotShape);
+        View dot = statusDot;
+        LinearLayout.LayoutParams dl = new LinearLayout.LayoutParams(px(6), px(6));
         dl.setMargins(px(4), px(2), 0, 0);
         logo.addView(dot, dl);
         header.addView(logo, new FrameLayout.LayoutParams(-2, -2, Gravity.START | Gravity.CENTER_VERTICAL));
@@ -311,10 +315,13 @@ public final class HomeActivity extends Activity {
         appsPage.setClipToPadding(false);
         appsGrid = new LinearLayout(this);
         appsGrid.setOrientation(LinearLayout.VERTICAL);
-        appsGrid.setPadding(0, px(14), 0, px(20));
+        appsGrid.setPadding(px(8), px(14), px(8), px(20));
+        appsGrid.setClipToPadding(false);
         appsGrid.setClipChildren(false);
         appsPage.addView(appsGrid);
-        pages.addView(appsPage, new FrameLayout.LayoutParams(-1, -1));
+        FrameLayout.LayoutParams al = new FrameLayout.LayoutParams(-1, -1);
+        al.setMargins(-px(8), 0, -px(8), 0);
+        pages.addView(appsPage, al);
 
         return root;
     }
@@ -385,8 +392,22 @@ public final class HomeActivity extends Activity {
             s = "●  Нет данных о тревогах";
         }
         alertPill.setText(s);
+        // the dot by the wordmark: green calm, red (pulsing) alert, orange partial, grey unknown
+        dotShape.setColor(c);
+        boolean pulse = state == Alerts.ALERT;
+        if (pulse != pulsing) {
+            pulsing = pulse;
+            statusDot.animate().cancel();
+            if (pulse) pulseDot(); else statusDot.setAlpha(1f);
+        }
         alertPill.setTextColor(light ? darker(c) : c);
         alertPill.setBackground(round((c & 0x00FFFFFF) | 0x29000000, 12, 0));
+    }
+
+    private void pulseDot() {
+        if (!pulsing) return;
+        float to = statusDot.getAlpha() > 0.6f ? 0.25f : 1f;
+        statusDot.animate().alpha(to).setDuration(700).withEndAction(this::pulseDot).start();
     }
 
     // ------------------------------------------------------------------ hero
@@ -588,7 +609,8 @@ public final class HomeActivity extends Activity {
         hs.setClipToPadding(false);
         LinearLayout row = new LinearLayout(this);
         row.setClipChildren(false);
-        row.setPadding(px(3), px(3), px(3), px(3));
+        row.setClipToPadding(false);
+        row.setPadding(px(8), px(8), px(8), 0);
         hs.addView(row);
         for (int i = 0; i < list.length(); i++) {
             JSONObject o = list.optJSONObject(i);
@@ -612,15 +634,18 @@ public final class HomeActivity extends Activity {
             frame.addView(img, new FrameLayout.LayoutParams(-1, -1));
             Images.load(o.optString("poster"), img);
             focusRing(frame, 9);
-            card.addView(frame, new LinearLayout.LayoutParams(px(88), px(130)));
+            card.addView(frame, new LinearLayout.LayoutParams(px(84), px(124)));
             TextView t = text(title, 9, txt, false);
             t.setSingleLine(true);
             t.setEllipsize(TextUtils.TruncateAt.END);
-            t.setMaxWidth(px(88));
+            t.setMaxWidth(px(84));
             card.addView(t, margins(0, 4, 0, 0));
-            row.addView(card, margins(0, 0, 12, 0));
+            row.addView(card, margins(0, 0, 14, 0));
         }
-        hero.addView(hs, new FrameLayout.LayoutParams(-1, -1));
+        // bleed the row into the page margin so the first poster lines up with the cards below
+        FrameLayout.LayoutParams hl = new FrameLayout.LayoutParams(-1, -1);
+        hl.setMargins(-px(8), -px(8), -px(8), 0);
+        hero.addView(hs, hl);
     }
 
     private JSONArray mustList() {
@@ -856,10 +881,12 @@ public final class HomeActivity extends Activity {
             if (i % 6 == 0) {
                 row = new LinearLayout(this);
                 row.setClipChildren(false);
+                row.setClipToPadding(false);
                 appsGrid.addView(row, margins(0, 0, 0, 22));
             }
             LinearLayout cell = new LinearLayout(this);
             cell.setOrientation(LinearLayout.VERTICAL);
+            cell.setClipChildren(false);
             View tile = appTile(pkg, 128, 72);
             tile.setOnClickListener(v -> {
                 if (pkg.equals(getPackageName())) startActivity(new Intent(this, DimActivity.class));
@@ -1161,12 +1188,13 @@ public final class HomeActivity extends Activity {
 
     private void focusRing(View v, int radiusDp) {
         GradientDrawable ring = new GradientDrawable();
-        ring.setCornerRadius(px(radiusDp + 2));
-        ring.setStroke(px(2), Color.TRANSPARENT);
+        ring.setCornerRadius(px(radiusDp));
+        ring.setStroke(px(2.5f), Color.TRANSPARENT);
         ring.setColor(Color.TRANSPARENT);
+        clip(v, radiusDp);   // the tile, its picture and the ring share one rounded outline
         if (v instanceof FrameLayout) ((FrameLayout) v).setForeground(ring);
         v.setOnFocusChangeListener((view, has) -> {
-            ring.setStroke(px(2), has ? (light ? 0xFF0D1220 : Color.WHITE) : Color.TRANSPARENT);
+            ring.setStroke(px(2.5f), has ? (light ? 0xFF0D1220 : Color.WHITE) : Color.TRANSPARENT);
             view.animate().scaleX(has ? 1.07f : 1f).scaleY(has ? 1.07f : 1f)
                     .translationZ(has ? px(14) : 0).setDuration(160).start();
         });
