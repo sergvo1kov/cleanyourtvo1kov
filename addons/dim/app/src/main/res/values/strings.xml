@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Дом</string>
+    <string name="redirect_desc">Кнопка Home открывает экран «Дом» вместо Google TV. Панель Google TV (долгое нажатие Home) остаётся.</string>
+    <string name="redirect_label">Дом: кнопка Home</string>
 </resources>

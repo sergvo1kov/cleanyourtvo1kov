@@ -6,9 +6,12 @@
 
     <!-- alerts.in.ua / ubilling (alerts), Open-Meteo (weather), Cloudflare (speed test), Tuya (Smart Life). -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- A home screen lists every TV app to launch it. -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 
     <application
         android:allowBackup="false"
+        android:networkSecurityConfig="@xml/network_security"
         android:banner="@drawable/banner"
         android:icon="@drawable/icon"
         android:label="@string/app_name"
@@ -30,6 +33,35 @@
             </intent-filter>
             <meta-data android:name="com.gathin.tvhome.card" android:resource="@xml/module_card" />
         </activity>
+
+        <!-- Our home screen. -->
+        <activity
+            android:name=".HomeActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:stateNotNeeded="true"
+            android:excludeFromRecents="true"
+            android:clearTaskOnLaunch="true"
+            android:screenOrientation="landscape"
+            android:resumeWhilePausing="true"
+            android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name=".HomeRedirectService"
+            android:exported="true"
+            android:label="@string/redirect_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data android:name="android.accessibilityservice" android:resource="@xml/home_redirect" />
+        </service>
 
         <!-- Notification access only so Android shares media sessions (Now playing); notifications are not read. -->
         <service

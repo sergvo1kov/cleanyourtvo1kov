@@ -49,6 +49,13 @@ final class Store {
     static final String TG_AT = "tg_at";
     static final String TG_ERROR = "tg_error";
 
+    // Home screen
+    static final String THEME = "theme";              // "dark" or "light"
+    static final String FAVS = "favs";                // package names, comma separated, in order
+    static final String MUST_NICK = "must_nick";
+    static final String MUST_LIST = "must_list";
+    static final String MUST_AT = "must_at";
+
     private Store() {}
 
     static SharedPreferences prefs(Context ctx) {
