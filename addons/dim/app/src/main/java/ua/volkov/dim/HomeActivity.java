@@ -79,7 +79,7 @@ public final class HomeActivity extends Activity {
     private LinearLayout homePage;
     private ScrollView appsPage;
     private LinearLayout appsGrid;
-    private TextView caption, dateLine, alertPill;
+    private TextView caption, dateLine, alertPill, titleBig;
     private View statusDot;
     private GradientDrawable dotShape;
     private boolean pulsing;
@@ -243,7 +243,8 @@ public final class HomeActivity extends Activity {
         FrameLayout titleRow = new FrameLayout(this);
         LinearLayout left = new LinearLayout(this);
         left.setOrientation(LinearLayout.VERTICAL);
-        left.addView(text("Для тебя", 30, txt, true));
+        titleBig = text("Для тебя", 30, txt, true);
+        left.addView(titleBig);
         caption = text("", 10, sub, false);
         left.addView(caption);
         titleRow.addView(left, new FrameLayout.LayoutParams(-2, -2, Gravity.START | Gravity.BOTTOM));
@@ -369,6 +370,9 @@ public final class HomeActivity extends Activity {
         if (hint != null) hint.setText(apps ? "◉  Открыть        ◎  Удерживай OK — добавить в избранное или убрать"
                 : "◉  Открыть        ◎  Удерживай OK — переставить или убрать");
         homePage.setVisibility(apps ? View.GONE : View.VISIBLE);
+        titleBig.setText(apps ? "Все приложения" : "Для тебя");
+        if (apps) caption.setText("Удерживай OK, чтобы добавить приложение в избранное на Главной");
+        else heroMode = "";   // redraw the For you card and its caption
         appsPage.setVisibility(apps ? View.VISIBLE : View.GONE);
         if (apps) {
             renderAppsGrid();
@@ -426,6 +430,7 @@ public final class HomeActivity extends Activity {
     // ------------------------------------------------------------------ hero
 
     private void renderHero() {
+        if (homePage.getVisibility() != View.VISIBLE) return;
         SharedPreferences p = Store.prefs(this);
         boolean alert = p.getInt(Store.ALERT_STATE, Alerts.UNKNOWN) == Alerts.ALERT;
         track = NowPlaying.current(this);
