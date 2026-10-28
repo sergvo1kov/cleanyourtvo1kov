@@ -15,6 +15,16 @@ android {
         versionName '3.1'
     }
 
+    // Fork: one fixed key for every build, so a new APK installs over the last one on the TV.
+    signingConfigs {
+        fork {
+            storeFile rootProject.file('ci-debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
+
     buildTypes {
         release {
             // R8 strips and optimises the code (AndroidX included): smaller APK, faster start on a slow TV CPU.
@@ -22,7 +32,7 @@ android {
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             // Sideloaded over ADB, never published: sign with the debug key so it installs over a debug build.
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.fork
         }
     }
 
