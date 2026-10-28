@@ -81,6 +81,7 @@ public final class HomeActivity extends Activity {
     private View scrim;
     private LinearLayout homePage;
     private ScrollView appsPage;
+    private FrameLayout appsClip;
     private LinearLayout appsGrid;
     private TextView caption, dateLine, alertPill, titleBig;
     private View statusDot;
@@ -92,6 +93,8 @@ public final class HomeActivity extends Activity {
     private LinearLayout favRow;
     private LinearLayout quickRow;
     private TextView hint;
+    private LinearLayout devices;
+    private TextView chipRemote, chipSound;
     private View hintBar;
     private final Runnable dwell = () -> {
         String h = hintFor(getCurrentFocus());
@@ -124,6 +127,7 @@ public final class HomeActivity extends Activity {
         public void run() {
             Refresher.kick(HomeActivity.this, false);
             checkTorrServe();
+            readBluetooth();
             refreshMust(false);
             io.execute(() -> lampa = LampaCards.read(getApplicationContext()));
             renderQuick();
@@ -233,7 +237,14 @@ public final class HomeActivity extends Activity {
         LinearLayout.LayoutParams dl = new LinearLayout.LayoutParams(px(6), px(6));
         dl.setMargins(px(4), px(2), 0, 0);
         logo.addView(dot, dl);
-        // (no wordmark: the header is just the tabs and Settings)
+        // remote and sound output, top left
+        devices = new LinearLayout(this);
+        devices.setGravity(Gravity.CENTER_VERTICAL);
+        chipRemote = chip(R.drawable.ic_remote);
+        chipSound = chip(R.drawable.ic_tv_sound);
+        devices.addView(chipRemote);
+        devices.addView(chipSound, margins(14, 0, 0, 0));
+        header.addView(devices, new FrameLayout.LayoutParams(-2, -2, Gravity.START | Gravity.CENTER_VERTICAL));
         LinearLayout tabs = new LinearLayout(this);
         tabHome = tab("Главная", v -> showApps(false));
         tabApps = tab("Приложения", v -> showApps(true));
@@ -348,9 +359,16 @@ public final class HomeActivity extends Activity {
         appsGrid.setClipToPadding(false);
         appsGrid.setClipChildren(false);
         appsPage.addView(appsGrid);
+        // A strict clip around the apps page: raised (zoomed) tiles must never draw over the title and clock.
+        FrameLayout appsClip = new FrameLayout(this);
+        appsClip.setClipChildren(true);
+        appsClip.setOutlineProvider(ViewOutlineProvider.BOUNDS);
+        appsClip.setClipToOutline(true);
+        appsClip.addView(appsPage, new FrameLayout.LayoutParams(-1, -1));
+        this.appsClip = appsClip;
         FrameLayout.LayoutParams al = new FrameLayout.LayoutParams(-1, -1);
         al.setMargins(-px(8), px(10), -px(8), 0);
-        pages.addView(appsPage, al);
+        pages.addView(appsClip, al);
 
         return root;
     }
@@ -457,6 +475,51 @@ public final class HomeActivity extends Activity {
         return v == parent;
     }
 
+    private TextView chip(int icon) {
+        TextView t = text("", 11, sub, false);
+        Drawable d = getDrawable(icon);
+        if (d != null) {
+            d = d.mutate();
+            d.setTint(sub);
+            d.setBounds(0, 0, px(14), px(14));
+            t.setCompoundDrawables(d, null, null, null);
+            t.setCompoundDrawablePadding(px(5));
+        }
+        t.setGravity(Gravity.CENTER_VERTICAL);
+        return t;
+    }
+
+    private void setChipIcon(TextView t, int icon) {
+        Drawable d = getDrawable(icon);
+        if (d == null) return;
+        d = d.mutate();
+        d.setTint(sub);
+        d.setBounds(0, 0, px(14), px(14));
+        t.setCompoundDrawables(d, null, null, null);
+    }
+
+    private void readBluetooth() {
+        io.execute(() -> {
+            BtStatus.Info b = BtStatus.read(getApplicationContext());
+            main.post(() -> {
+                if (b.remote) {
+                    chipRemote.setVisibility(View.VISIBLE);
+                    chipRemote.setText(b.remoteBattery >= 0 ? "Пульт  " + b.remoteBattery + "%" : "Пульт");
+                } else {
+                    chipRemote.setVisibility(View.GONE);
+                }
+                if (b.phones) {
+                    setChipIcon(chipSound, R.drawable.ic_headphones);
+                    String n = b.phonesName.length() > 18 ? b.phonesName.substring(0, 17) + "…" : b.phonesName;
+                    chipSound.setText(b.phonesBattery >= 0 ? n + "  " + b.phonesBattery + "%" : n);
+                } else {
+                    setChipIcon(chipSound, R.drawable.ic_tv_sound);
+                    chipSound.setText("Звук: телевизор");
+                }
+            });
+        });
+    }
+
     private void pulseDot() {
         if (!pulsing) return;
         float to = statusDot.getAlpha() > 0.6f ? 0.25f : 1f;
@@ -488,7 +551,7 @@ public final class HomeActivity extends Activity {
         switch (mode) {
             case "alert": caption.setText("Воздушная тревога  ·  " + Alerts.label(p.getString(Store.ALERT_SCOPE, Alerts.RAION))); updateAlertHero(); break;
             case "music": caption.setText(track.app + "  ·  Сейчас играет"); updateMusicHero(); break;
-            case "must": caption.setText(lampaCount > 0 ? "Lampa  ·  Must" : "Must"); break;
+            case "must": caption.setText(""); break;
             default: caption.setText("Одесса  ·  сейчас");
         }
     }
