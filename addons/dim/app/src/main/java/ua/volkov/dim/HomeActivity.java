@@ -78,6 +78,53 @@ public final class HomeActivity extends Activity {
     private ContentObserver observer;
 
     private ImageView backdrop;
+    private GradientDrawable ambient;
+    private long ambientStart;
+
+    // Ambient background: slow drift between palettes, dark or light with the theme.
+    private static final int[][] DARK = {
+            {0xFF0B1020, 0xFF161233, 0xFF1D1544},   // indigo night
+            {0xFF07161E, 0xFF0C2830, 0xFF12233F},   // deep teal
+            {0xFF120B1E, 0xFF221236, 0xFF0F1A3A},   // plum
+            {0xFF08170F, 0xFF0F241D, 0xFF13203A},   // pine
+            {0xFF1A0E14, 0xFF26121F, 0xFF161A36}};  // wine
+    private static final int[][] LIGHT = {
+            {0xFFEEF2F8, 0xFFDDE4F0, 0xFFD3DCEA},   // morning blue
+            {0xFFF3EEF8, 0xFFE6DDF0, 0xFFDCD3EA},   // lilac
+            {0xFFEEF8F4, 0xFFDDEFE8, 0xFFD3EAE2},   // mint
+            {0xFFF8F3EE, 0xFFF0E6DD, 0xFFEADDD3},   // sand
+            {0xFFEEF6F8, 0xFFDDECF0, 0xFFD3E4EA}};  // sky
+    private static final long HOLD_MS = 8_000L, FADE_MS = 12_000L;
+    private final android.animation.ArgbEvaluator argb = new android.animation.ArgbEvaluator();
+    private final Runnable ambientTick = new Runnable() {
+        @Override
+        public void run() {
+            stepAmbient();
+            main.postDelayed(this, 66);
+        }
+    };
+
+    private int[] palette(int i) {
+        int[][] set = light ? LIGHT : DARK;
+        return set[((i % set.length) + set.length) % set.length];
+    }
+
+    private void stepAmbient() {
+        long t = SystemClock.elapsedRealtime() - ambientStart;
+        long cycle = HOLD_MS + FADE_MS;
+        int i = (int) (t / cycle);
+        long in = t % cycle;
+        int[] from = palette(i), to = palette(i + 1);
+        if (in < HOLD_MS) {
+            ambient.setColors(from);
+            return;
+        }
+        float f = (in - HOLD_MS) / (float) FADE_MS;
+        f = f * f * (3 - 2 * f);   // ease in-out
+        int[] c = new int[from.length];
+        for (int k = 0; k < c.length; k++) c[k] = (int) argb.evaluate(f, from[k], to[k]);
+        ambient.setColors(c);
+    }
     private View scrim;
     private LinearLayout homePage;
     private ScrollView appsPage;
@@ -166,6 +213,8 @@ public final class HomeActivity extends Activity {
         Refresher.kick(this, false);
         main.post(tick);
         main.post(slowTick);
+        if (ambientStart == 0) ambientStart = SystemClock.elapsedRealtime();
+        main.post(ambientTick);
         renderFavs();
         io.execute(() -> lampa = LampaCards.read(getApplicationContext()));
     }
@@ -175,6 +224,7 @@ public final class HomeActivity extends Activity {
         super.onPause();
         main.removeCallbacks(tick);
         main.removeCallbacks(slowTick);
+        main.removeCallbacks(ambientTick);
         getContentResolver().unregisterContentObserver(observer);
     }
 
@@ -202,10 +252,8 @@ public final class HomeActivity extends Activity {
 
     private View build() {
         FrameLayout root = new FrameLayout(this);
-        GradientDrawable bg = light
-                ? new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{0xFFEEF2F8, 0xFFD3DCEA})
-                : new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{0xFF0B1020, 0xFF161233, 0xFF1D1544});
-        root.setBackground(bg);
+        ambient = new GradientDrawable(GradientDrawable.Orientation.TL_BR, palette(0));
+        root.setBackground(ambient);
         backdrop = new ImageView(this);
         backdrop.setScaleType(ImageView.ScaleType.CENTER_CROP);
         backdrop.setAlpha(0f);
@@ -327,8 +375,7 @@ public final class HomeActivity extends Activity {
         LinearLayout hintBar = new LinearLayout(this);
         hintBar.setOrientation(LinearLayout.VERTICAL);
         // a fade under the hints, so nothing scrolling below can show through them
-        hintBar.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-                light ? new int[]{0x00D3DCEA, 0xF2D3DCEA, 0xFFD3DCEA} : new int[]{0x00121029, 0xF2121029, 0xFF121029}));
+        // no backing: the ambient background shows through, and the apps page is clipped above this bar
         hintBar.setPadding(px(52), px(16), px(52), px(10));
         View rule = new View(this);
         rule.setBackgroundColor(line);
