@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Dim banner: a house sending out alert waves, on a night gradient. Drawn for this add-on. -->
+<!-- Control Center banner: a TV remote with a lit D-pad, flat Material style. Drawn for this app. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="320dp" android:height="180dp"
@@ -7,25 +7,24 @@
     <path android:pathData="M0,0h320v180h-320z">
         <aapt:attr name="android:fillColor">
             <gradient android:type="linear" android:startX="0" android:startY="0" android:endX="320" android:endY="180"
-                android:startColor="#FF101A33" android:endColor="#FF2B1640" />
+                android:startColor="#FF1E3A8A" android:endColor="#FF3B82F6" />
         </aapt:attr>
     </path>
-    <!-- soft glow behind the house -->
-    <path android:pathData="M160,95m-70,0a70,70 0,1 1,140 0a70,70 0,1 1,-140 0">
-        <aapt:attr name="android:fillColor">
-            <gradient android:type="radial" android:centerX="160" android:centerY="95" android:gradientRadius="70"
-                android:startColor="#33FFFFFF" android:endColor="#00FFFFFF" />
-        </aapt:attr>
-    </path>
-    <!-- house -->
-    <path android:fillColor="#FFF5F5F7"
-        android:pathData="M160,52 L203,88 Q206,91 202,91 L196,91 L196,128 Q196,132 192,132 L128,132 Q124,132 124,128 L124,91 L118,91 Q114,91 117,88 Z" />
-    <path android:fillColor="#FF1C2238" android:pathData="M150,108 Q150,104 154,104 L166,104 Q170,104 170,108 L170,132 L150,132 Z" />
-    <!-- alert waves -->
-    <path android:strokeColor="#FFFF453A" android:strokeWidth="5" android:strokeLineCap="round" android:fillColor="#00000000"
-        android:pathData="M214,62 A14,14 0 0,1 224,80" />
-    <path android:strokeColor="#CCFF453A" android:strokeWidth="5" android:strokeLineCap="round" android:fillColor="#00000000"
-        android:pathData="M220,48 A30,30 0 0,1 240,84" />
-    <path android:strokeColor="#80FF453A" android:strokeWidth="5" android:strokeLineCap="round" android:fillColor="#00000000"
-        android:pathData="M226,34 A46,46 0 0,1 256,88" />
+    <!-- soft shadow -->
+    <path android:fillColor="#33000000" android:pathData="M137,30h54a14,14 0,0 1,14 14v118h-82v-118a14,14 0,0 1,14 -14z" />
+    <!-- remote body -->
+    <path android:fillColor="#FFF8FAFC" android:pathData="M133,24h54a14,14 0,0 1,14 14v142h-82v-142a14,14 0,0 1,14 -14z" />
+    <!-- D-pad ring and centre -->
+    <path android:fillColor="#FFDBE4F0" android:pathData="M160,72m-27,0a27,27 0,1 1,54 0a27,27 0,1 1,-54 0" />
+    <path android:fillColor="#FF2563EB" android:pathData="M160,72m-12,0a12,12 0,1 1,24 0a12,12 0,1 1,-24 0" />
+    <path android:fillColor="#FF94A3B8" android:pathData="M160,50l4,6h-8z M160,94l4,-6h-8z M138,72l6,-4v8z M182,72l-6,-4v8z" />
+    <!-- buttons -->
+    <path android:fillColor="#FF94A3B8" android:pathData="M143,116m-7,0a7,7 0,1 1,14 0a7,7 0,1 1,-14 0" />
+    <path android:fillColor="#FF94A3B8" android:pathData="M177,116m-7,0a7,7 0,1 1,14 0a7,7 0,1 1,-14 0" />
+    <path android:fillColor="#FFEF4444" android:pathData="M160,138m-8,0a8,8 0,1 1,16 0a8,8 0,1 1,-16 0" />
+    <!-- signal waves -->
+    <path android:strokeColor="#CCFFFFFF" android:strokeWidth="5" android:strokeLineCap="round" android:fillColor="#00000000"
+        android:pathData="M213,40 A16,16 0,0 1,223 58" />
+    <path android:strokeColor="#80FFFFFF" android:strokeWidth="5" android:strokeLineCap="round" android:fillColor="#00000000"
+        android:pathData="M220,24 A34,34 0,0 1,240 62" />
 </vector>

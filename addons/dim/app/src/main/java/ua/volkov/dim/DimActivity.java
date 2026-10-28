@@ -113,7 +113,7 @@ public final class DimActivity extends Activity {
         scroll.addView(col);
         root.addView(scroll);
 
-        TextView title = text("Дом", 34, WHITE, true);
+        TextView title = text("Центр управления", 34, WHITE, true);
         col.addView(title);
         updated = text("Одесса", 14, FAINT, false);
         col.addView(updated, margins(0, 2, 0, 22));

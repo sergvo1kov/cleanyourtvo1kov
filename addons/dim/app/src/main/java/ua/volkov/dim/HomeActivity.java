@@ -92,6 +92,11 @@ public final class HomeActivity extends Activity {
     private LinearLayout favRow;
     private LinearLayout quickRow;
     private TextView hint;
+    private View hintBar;
+    private final Runnable dwell = () -> {
+        String h = hintFor(getCurrentFocus());
+        if (h != null) showHint(h, false);
+    };
 
     // hero (music)
     private ImageView npArt;
@@ -100,9 +105,6 @@ public final class HomeActivity extends Activity {
     private NowPlaying.Track track;
 
     // quick tiles
-    private TextView qHdmiName, qHdmiSub, qLightName, qLightSub, qSensorName, qSensorSub, qNetSub, qTorrSub;
-    private String hdmiInput, lightId, lightCode, lightName;
-    private boolean lightOn;
     private volatile String torrVersion;
 
     private final List<String> favs = new ArrayList<>();
@@ -184,6 +186,8 @@ public final class HomeActivity extends Activity {
     public void onBackPressed() {
         if (moving >= 0) {
             endMove();
+        } else if (qMoving >= 0) {
+            endQuickMove();
         } else if (appsPage.getVisibility() == View.VISIBLE) {
             showApps(false);
         }
@@ -318,10 +322,19 @@ public final class HomeActivity extends Activity {
         View rule = new View(this);
         rule.setBackgroundColor(line);
         hintBar.addView(rule, new LinearLayout.LayoutParams(-1, 1));
-        hint = text("◉  Открыть        ◎  Удерживай OK — переставить или убрать", 10, sub, false);
+        hint = text("", 10, sub, false);
         hint.setPadding(0, px(6), 0, 0);
         hintBar.addView(hint);
+        hintBar.setAlpha(0f);
+        this.hintBar = hintBar;
         root.addView(hintBar, new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM));
+        // hints appear only after the remote rests on something for a moment
+        root.getViewTreeObserver().addOnGlobalFocusChangeListener((oldF, newF) -> {
+            if (moving >= 0 || qMoving >= 0) return;
+            hideHint();
+            main.removeCallbacks(dwell);
+            main.postDelayed(dwell, 1500);
+        });
 
         // all apps page
         appsPage = new ScrollView(this);
@@ -371,8 +384,7 @@ public final class HomeActivity extends Activity {
 
     private void showApps(boolean apps) {
         selectTab(apps);
-        if (hint != null) hint.setText(apps ? "◉  Открыть        ◎  Удерживай OK — добавить в избранное или убрать"
-                : "◉  Открыть        ◎  Удерживай OK — переставить или убрать");
+        hideHint();
         homePage.setVisibility(apps ? View.GONE : View.VISIBLE);
         titleBig.setText(apps ? "Все приложения" : "Для тебя");
         if (apps) caption.setText("Удерживай OK, чтобы добавить приложение в избранное на Главной");
@@ -416,6 +428,33 @@ public final class HomeActivity extends Activity {
 
         alertPill.setTextColor(light ? darker(c) : c);
         alertPill.setBackground(round((c & 0x00FFFFFF) | 0x29000000, 12, 0));
+    }
+
+    private void showHint(String text, boolean sticky) {
+        hint.setText(text);
+        hintBar.animate().cancel();
+        hintBar.animate().alpha(1f).setDuration(220).start();
+    }
+
+    private void hideHint() {
+        if (hintBar == null) return;
+        hintBar.animate().cancel();
+        hintBar.animate().alpha(0f).setDuration(150).start();
+    }
+
+    /** What holding OK does on the focused element, or null when nothing useful to say. */
+    private String hintFor(View f) {
+        if (f == null) return null;
+        if (isInside(f, favRow)) return "◉  Открыть        ◎  Удерживай OK — переставить или убрать из избранного";
+        if (isInside(f, quickRow)) return "◉  Открыть        ◎  Удерживай OK — заменить, переставить, убрать или добавить плитку";
+        if (isInside(f, appsGrid)) return "◉  Открыть        ◎  Удерживай OK — добавить в избранное или убрать";
+        if (isInside(f, hero) && "must".equals(heroMode)) return "◉  Открыть в Lampa";
+        return null;
+    }
+
+    private static boolean isInside(View v, View parent) {
+        for (android.view.ViewParent p = v.getParent(); p != null; p = p.getParent()) if (p == parent) return true;
+        return v == parent;
     }
 
     private void pulseDot() {
@@ -836,7 +875,7 @@ public final class HomeActivity extends Activity {
 
     private void startMove(int idx) {
         moving = idx;
-        hint.setText("◀ ▶  двигать        OK или Назад — готово");
+        showHint("◀ ▶  двигать        OK или Назад — готово", true);
         View v = favRow.getChildAt(idx);
         v.requestFocus();
         v.animate().translationY(-px(6)).setDuration(150).start();
@@ -845,12 +884,32 @@ public final class HomeActivity extends Activity {
     private void endMove() {
         moving = -1;
         saveFavs();
-        hint.setText("◉  Открыть        ◎  Удерживай OK — переставить или убрать");
+        hideHint();
         for (int i = 0; i < favRow.getChildCount(); i++) favRow.getChildAt(i).setTranslationY(0);
     }
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent e) {
+        if (qMoving >= 0 && e.getAction() == KeyEvent.ACTION_DOWN) {
+            int k = e.getKeyCode();
+            if (k == KeyEvent.KEYCODE_DPAD_LEFT || k == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                int to = qMoving + (k == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : 1);
+                if (to >= 0 && to < tiles.size()) {
+                    Collections.swap(tiles, qMoving, to);
+                    qMoving = to;
+                    buildQuick();
+                    View v = tiles.get(to).view;
+                    v.requestFocus();
+                    v.setTranslationY(-px(5));
+                }
+                return true;
+            }
+            if (k == KeyEvent.KEYCODE_DPAD_UP || k == KeyEvent.KEYCODE_DPAD_DOWN) return true;
+            if (k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER || k == KeyEvent.KEYCODE_BACK) {
+                endQuickMove();
+                return true;
+            }
+        }
         if (moving >= 0 && e.getAction() == KeyEvent.ACTION_DOWN) {
             int k = e.getKeyCode();
             if (k == KeyEvent.KEYCODE_DPAD_LEFT || k == KeyEvent.KEYCODE_DPAD_RIGHT) {
@@ -915,7 +974,7 @@ public final class HomeActivity extends Activity {
             if (!pkgs.contains(p) && !p.equals(getPackageName()) && !HIDDEN.contains(p)) pkgs.add(p);
         }
         Collections.sort(pkgs, (a, b) -> label(a).compareToIgnoreCase(label(b)));
-        pkgs.add(0, getPackageName());   // Дом itself (Smart Life, speed test, settings)
+        pkgs.add(0, getPackageName());   // the Control centre itself (Smart Life, speed test, settings)
         LinearLayout row = null;
         for (int i = 0; i < pkgs.size(); i++) {
             final String pkg = pkgs.get(i);
@@ -948,7 +1007,7 @@ public final class HomeActivity extends Activity {
                 return true;
             });
             cell.addView(tile);
-            TextView t = text(pkg.equals(getPackageName()) ? "Дом" : label(pkg), 10, sub, false);
+            TextView t = text(pkg.equals(getPackageName()) ? "Центр управления" : label(pkg), 10, sub, false);
             t.setSingleLine(true);
             t.setMaxWidth(px(128));
             t.setEllipsize(TextUtils.TruncateAt.END);
@@ -959,138 +1018,335 @@ public final class HomeActivity extends Activity {
 
     // ------------------------------------------------------------------ quick tiles
 
+    /** One slot of the bottom row: what it shows is set by its spec (see candidates()). */
+    private final class Tile {
+        final String spec;
+        View view;
+        TextView icon, name, subT;
+
+        Tile(String spec) {
+            this.spec = spec;
+        }
+    }
+
+    private final List<Tile> tiles = new ArrayList<>();
+    private int qMoving = -1;
+    private static final int MAX_TILES = 6;
+
+    private List<String> loadQuick() {
+        List<String> out = new ArrayList<>();
+        String saved = Store.prefs(this).getString(Store.QUICK, "");
+        if (!saved.isEmpty()) {
+            for (String sp : saved.split(",")) if (!sp.isEmpty()) out.add(sp);
+            return out;
+        }
+        // first run: first HDMI, first switch, first sensor, internet, TorrServe, settings
+        List<String[]> c = candidates();
+        String firstInput = null, firstSwitch = null, firstSensor = null;
+        for (String[] k : c) {
+            if (firstInput == null && k[0].startsWith("input:")) firstInput = k[0];
+            if (firstSwitch == null && k[0].startsWith("tuya:") && "switch".equals(k[2])) firstSwitch = k[0];
+            if (firstSensor == null && k[0].startsWith("tuya:") && "sensor".equals(k[2])) firstSensor = k[0];
+        }
+        out.add(firstInput != null ? firstInput : "sources");
+        if (firstSwitch != null) out.add(firstSwitch);
+        if (firstSensor != null) out.add(firstSensor);
+        out.add("net");
+        out.add("torr");
+        out.add("settings");
+        return out;
+    }
+
+    private void saveQuick() {
+        List<String> specs = new ArrayList<>();
+        for (Tile t : tiles) specs.add(t.spec);
+        Store.prefs(this).edit().putString(Store.QUICK, TextUtils.join(",", specs)).apply();
+    }
+
+    /** Everything a slot can show: {spec, label, kind}. */
+    private List<String[]> candidates() {
+        List<String[]> out = new ArrayList<>();
+        try {
+            TvInputManager tm = (TvInputManager) getSystemService(Context.TV_INPUT_SERVICE);
+            List<String[]> inputs = new ArrayList<>();
+            for (TvInputInfo in : tm.getTvInputList()) {
+                if (in.getParentId() != null || in.isPassthroughInput() == false && in.getType() != TvInputInfo.TYPE_TUNER) continue;
+                CharSequence l = in.loadLabel(this);
+                inputs.add(new String[]{"input:" + in.getId(), l == null ? "Вход" : l.toString(), "input"});
+            }
+            Collections.sort(inputs, (a, b) -> a[1].compareToIgnoreCase(b[1]));
+            out.addAll(inputs);
+        } catch (RuntimeException ignored) {
+            // no TV inputs on this device
+        }
+        try {
+            JSONArray d = new JSONArray(Store.prefs(this).getString(Store.TUYA_DEVICES, "[]"));
+            for (int i = 0; i < d.length(); i++) {
+                JSONObject o = d.getJSONObject(i);
+                boolean sw = !o.optString("switch_code").isEmpty();
+                out.add(new String[]{"tuya:" + o.optString("id"), o.optString("name"), sw ? "switch" : "sensor"});
+            }
+        } catch (Exception ignored) {
+            // Smart Life not connected yet
+        }
+        out.add(new String[]{"sources", "Источники (выбор входа)", "fixed"});
+        out.add(new String[]{"net", "Интернет и тест скорости", "fixed"});
+        out.add(new String[]{"torr", "TorrServe", "fixed"});
+        out.add(new String[]{"panel", "Панель Google TV (Google Home)", "fixed"});
+        out.add(new String[]{"control", "Центр управления", "fixed"});
+        out.add(new String[]{"settings", "Настройки", "fixed"});
+        return out;
+    }
+
     private void buildQuick() {
+        boolean hadFocus = quickRow.findFocus() != null;
+        int focusAt = -1;
+        if (hadFocus) for (int i = 0; i < tiles.size(); i++) if (tiles.get(i).view.hasFocus()) focusAt = i;
         quickRow.removeAllViews();
-        TextView[] h = quick("▭", v -> openInput(), true);
-        qHdmiName = h[0];
-        qHdmiSub = h[1];
-        TextView[] l = quick("💡", v -> toggleLight(), true);
-        qLightName = l[0];
-        qLightSub = l[1];
-        TextView[] s = quick("🌡", v -> startActivity(new Intent(this, DimActivity.class)), true);
-        qSensorName = s[0];
-        qSensorSub = s[1];
-        TextView[] n = quick("⇅", v -> startActivity(new Intent(this, DimActivity.class)), true);
-        n[0].setText("Интернет");
-        qNetSub = n[1];
-        TextView[] t = quick("◎", v -> launch(TORRSERVE), true);
-        t[0].setText("TorrServe");
-        qTorrSub = t[1];
-        TextView[] st = quick("⚙", v -> openSettings(), false);
-        st[0].setText("Настройки");
-        st[1].setText("Вид, Must, ключи");
-        findHdmi();
+        List<String> specs = tiles.isEmpty() ? loadQuick() : null;
+        if (specs != null) for (String sp : specs) tiles.add(new Tile(sp));
+        for (int i = 0; i < tiles.size(); i++) {
+            Tile t = tiles.get(i);
+            final int idx = i;
+            makeTile(t, i < tiles.size() - 1);
+            t.view.setOnClickListener(v -> {
+                if (qMoving >= 0) endQuickMove();
+                else tap(t);
+            });
+            t.view.setOnLongClickListener(v -> {
+                tileMenu(idx);
+                return true;
+            });
+        }
+        if (focusAt >= 0 && focusAt < tiles.size()) tiles.get(focusAt).view.requestFocus();
         renderQuick();
     }
 
-    private TextView[] quick(String icon, View.OnClickListener onClick, boolean gap) {
+    private void makeTile(Tile t, boolean gap) {
         LinearLayout c = new LinearLayout(this);
         c.setGravity(Gravity.CENTER_VERTICAL);
         c.setPadding(px(12), 0, px(10), 0);
         c.setFocusable(true);
         c.setClickable(true);
-        c.setOnClickListener(onClick);
         GradientDrawable g = round(glass, 11, line);
         c.setBackground(g);
         c.setOnFocusChangeListener((v, has) -> {
             g.setColor(has ? glassFocus : glass);
             v.animate().scaleX(has ? 1.05f : 1f).scaleY(has ? 1.05f : 1f).translationZ(has ? px(8) : 0).setDuration(150).start();
         });
-        TextView ic = text(icon, 16, txt, false);
-        ic.setGravity(Gravity.CENTER);
-        c.addView(ic, new LinearLayout.LayoutParams(px(22), -2));
+        t.icon = text("", 16, txt, false);
+        t.icon.setGravity(Gravity.CENTER);
+        c.addView(t.icon, new LinearLayout.LayoutParams(px(22), -2));
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        TextView name = text("", 12, txt, true);
-        name.setSingleLine(true);
-        name.setEllipsize(TextUtils.TruncateAt.END);
-        TextView subT = text("", 9, sub, false);
-        subT.setSingleLine(true);
-        subT.setEllipsize(TextUtils.TruncateAt.END);
-        box.addView(name);
-        box.addView(subT);
+        t.name = text("", 12, txt, true);
+        t.name.setSingleLine(true);
+        t.name.setEllipsize(TextUtils.TruncateAt.END);
+        t.subT = text("", 9, sub, false);
+        t.subT.setSingleLine(true);
+        t.subT.setEllipsize(TextUtils.TruncateAt.END);
+        box.addView(t.name);
+        box.addView(t.subT);
         LinearLayout.LayoutParams bl = new LinearLayout.LayoutParams(0, -2, 1);
         bl.setMargins(px(8), 0, 0, 0);
         c.addView(box, bl);
         LinearLayout.LayoutParams cl = new LinearLayout.LayoutParams(0, -1, 1);
         if (gap) cl.setMargins(0, 0, px(10), 0);
         quickRow.addView(c, cl);
-        return new TextView[]{name, subT};
+        t.view = c;
     }
 
-    private void findHdmi() {
-        qHdmiName.setText("Источники");
-        qHdmiSub.setText("HDMI и ТВ");
+    private JSONObject tuyaDevice(String id) {
+        try {
+            JSONArray d = new JSONArray(Store.prefs(this).getString(Store.TUYA_DEVICES, "[]"));
+            for (int i = 0; i < d.length(); i++) if (id.equals(d.getJSONObject(i).optString("id"))) return d.getJSONObject(i);
+        } catch (Exception ignored) {
+            // not loaded yet
+        }
+        return null;
+    }
+
+    private String inputLabel(String id) {
         try {
             TvInputManager tm = (TvInputManager) getSystemService(Context.TV_INPUT_SERVICE);
-            for (TvInputInfo in : tm.getTvInputList()) {
-                if (in.getType() == TvInputInfo.TYPE_HDMI && in.getParentId() == null) {
-                    hdmiInput = in.getId();
-                    CharSequence name = in.loadLabel(this);
-                    qHdmiName.setText(name == null ? "HDMI" : name.toString());
-                    qHdmiSub.setText("Переключить вход");
-                    break;
-                }
-            }
-        } catch (RuntimeException ignored) {
-            // no TV input service: the tile opens the inputs settings
-        }
-    }
-
-    private void openInput() {
-        if (hdmiInput != null) {
-            try {
-                startActivity(new Intent(Intent.ACTION_VIEW, TvContract.buildChannelUriForPassthroughInput(hdmiInput))
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-                return;
-            } catch (ActivityNotFoundException ignored) {
-                // fall through to the settings page
-            }
-        }
-        try {
-            startActivity(new Intent("android.settings.INPUT_SETTINGS").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-        } catch (ActivityNotFoundException e) {
-            startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS));
+            TvInputInfo in = tm.getTvInputInfo(id);
+            CharSequence l = in == null ? null : in.loadLabel(this);
+            return l == null ? "Вход" : l.toString();
+        } catch (RuntimeException e) {
+            return "Вход";
         }
     }
 
     private void renderQuick() {
         SharedPreferences p = Store.prefs(this);
-        // Smart Life: first switch and first sensor
-        lightId = null;
-        qLightName.setText("Свет");
-        qLightSub.setText(Store.str(this, Store.TUYA_ID).isEmpty() ? "Smart Life не подключён" : "загрузка…");
-        qSensorName.setText("Датчик");
-        qSensorSub.setText("—");
-        try {
-            JSONArray d = new JSONArray(p.getString(Store.TUYA_DEVICES, "[]"));
-            boolean gotSensor = false;
-            for (int i = 0; i < d.length(); i++) {
-                JSONObject o = d.getJSONObject(i);
-                if (lightId == null && !o.optString("switch_code").isEmpty()) {
-                    lightId = o.optString("id");
-                    lightCode = o.optString("switch_code");
-                    lightName = o.optString("name");
-                    lightOn = o.optBoolean("switch_on");
-                    qLightName.setText(lightName);
-                    qLightSub.setText(!o.optBoolean("online", true) ? "не в сети" : lightOn ? "Включён  ·  OK" : "Выключен  ·  OK");
-                } else if (!gotSensor && o.optString("switch_code").isEmpty() && o.optString("summary").contains("°")) {
-                    gotSensor = true;
-                    String[] parts = o.optString("summary").split("  ·  ");
-                    qSensorName.setText(parts.length > 1 ? parts[0] + "  ·  " + parts[1] : parts[0]);
-                    qSensorSub.setText(o.optString("name"));
+        for (Tile t : tiles) {
+            String sp = t.spec;
+            if (sp.startsWith("input:")) {
+                t.icon.setText("▭");
+                t.name.setText(inputLabel(sp.substring(6)));
+                t.subT.setText("Переключить вход");
+            } else if (sp.startsWith("tuya:")) {
+                JSONObject o = tuyaDevice(sp.substring(5));
+                if (o == null) {
+                    t.icon.setText("💡");
+                    t.name.setText("Smart Life");
+                    t.subT.setText(Store.str(this, Store.TUYA_ID).isEmpty() ? "не подключён" : "загрузка…");
+                    continue;
                 }
+                String name = o.optString("name");
+                boolean sw = !o.optString("switch_code").isEmpty();
+                boolean online = o.optBoolean("online", true);
+                if (sw) {
+                    String low = name.toLowerCase(new Locale("ru"));
+                    t.icon.setText(low.contains("розет") || low.contains("plug") ? "🔌" : "💡");
+                    t.name.setText(name);
+                    boolean on = o.optBoolean("switch_on");
+                    t.subT.setText(!online ? "не в сети" : on ? "Включён  ·  OK" : "Выключен  ·  OK");
+                } else {
+                    String[] parts = o.optString("summary").split("  ·  ");
+                    t.icon.setText(o.optString("summary").contains("°") ? "🌡" : "◉");
+                    t.name.setText(parts.length > 1 ? parts[0] + "  ·  " + parts[1] : parts[0].isEmpty() ? name : parts[0]);
+                    t.subT.setText(online ? name : "не в сети");
+                }
+            } else if ("net".equals(sp)) {
+                t.icon.setText("⇅");
+                t.name.setText("Интернет");
+                boolean ok = p.getBoolean(Store.NET_OK, false);
+                long sAt = p.getLong(Store.SPEED_AT, 0);
+                t.subT.setText(p.getLong(Store.NET_AT, 0) == 0 ? "проверка…" : !ok ? "нет подключения"
+                        : sAt > 0 ? "Есть  ·  " + Math.round(p.getFloat(Store.SPEED_DOWN, 0)) + " Мбит/с" : "Есть  ·  OK — тест");
+            } else if ("torr".equals(sp)) {
+                t.icon.setText("◎");
+                t.name.setText("TorrServe");
+                String tv = torrVersion;
+                t.subT.setText(launchIntent(TORRSERVE) == null ? "не установлен"
+                        : tv == null ? "не отвечает  ·  OK — открыть" : "Работает  ·  " + tv);
+            } else if ("panel".equals(sp)) {
+                t.icon.setText("⌂");
+                t.name.setText("Google Home");
+                t.subT.setText("Панель Google TV");
+            } else if ("sources".equals(sp)) {
+                t.icon.setText("⇄");
+                t.name.setText("Источники");
+                t.subT.setText("HDMI и ТВ");
+            } else if ("control".equals(sp)) {
+                t.icon.setText("◫");
+                t.name.setText("Центр управления");
+                t.subT.setText("Тревоги, свет, сеть");
+            } else {
+                t.icon.setText("⚙");
+                t.name.setText("Настройки");
+                t.subT.setText("Вид, Must, ключи");
             }
-        } catch (Exception ignored) {
-            // no devices yet
         }
-        boolean ok = p.getBoolean(Store.NET_OK, false);
-        long sAt = p.getLong(Store.SPEED_AT, 0);
-        qNetSub.setText(p.getLong(Store.NET_AT, 0) == 0 ? "проверка…" : !ok ? "нет подключения"
-                : sAt > 0 ? "Есть  ·  " + Math.round(p.getFloat(Store.SPEED_DOWN, 0)) + " Мбит/с" : "Есть  ·  OK — тест");
-        String tv = torrVersion;
-        if (launchIntent(TORRSERVE) == null) qTorrSub.setText("не установлен");
-        else qTorrSub.setText(tv == null ? "не отвечает  ·  OK — открыть" : "Работает  ·  " + tv);
+    }
+
+    private void tap(Tile t) {
+        String sp = t.spec;
+        if (sp.startsWith("input:")) openInput(sp.substring(6));
+        else if (sp.startsWith("tuya:")) toggleTuya(t, sp.substring(5));
+        else if ("net".equals(sp) || "control".equals(sp)) startActivity(new Intent(this, DimActivity.class));
+        else if ("torr".equals(sp)) launch(TORRSERVE);
+        else if ("panel".equals(sp)) openGoogleTvPanel();
+        else if ("sources".equals(sp)) openInput(null);
+        else openSettings();
+    }
+
+    private void tileMenu(int idx) {
+        List<String> items = new ArrayList<>();
+        items.add("Заменить на…");
+        items.add("Переместить");
+        if (tiles.size() > 1) items.add("Убрать");
+        if (tiles.size() < MAX_TILES) items.add("Добавить плитку рядом");
+        new AlertDialog.Builder(this, dialogTheme())
+                .setTitle(tiles.get(idx).name.getText())
+                .setItems(items.toArray(new String[0]), (d, w) -> {
+                    String what = items.get(w);
+                    if (what.startsWith("Заменить")) pickTile(idx, true);
+                    else if (what.startsWith("Переместить")) startQuickMove(idx);
+                    else if (what.startsWith("Убрать")) {
+                        tiles.remove(idx);
+                        saveQuick();
+                        buildQuick();
+                    } else pickTile(idx, false);
+                })
+                .show();
+    }
+
+    /** Choose what a slot shows: replace slot idx, or add a new one after it. */
+    private void pickTile(int idx, boolean replace) {
+        List<String[]> all = candidates();
+        List<String[]> free = new ArrayList<>();
+        for (String[] c : all) {
+            boolean used = false;
+            for (Tile t : tiles) if (t.spec.equals(c[0])) used = true;
+            if (!used) free.add(c);
+        }
+        if (free.isEmpty()) {
+            Toast.makeText(this, "Всё уже на панели", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String[] labels = new String[free.size()];
+        for (int i = 0; i < free.size(); i++) {
+            String[] c = free.get(i);
+            String kind = "input".equals(c[2]) ? "Вход:  " : "switch".equals(c[2]) ? "Свет / розетка:  " : "sensor".equals(c[2]) ? "Датчик:  " : "";
+            labels[i] = kind + c[1];
+        }
+        new AlertDialog.Builder(this, dialogTheme())
+                .setTitle(replace ? "Показывать на этой плитке" : "Новая плитка")
+                .setItems(labels, (d, w) -> {
+                    Tile t = new Tile(free.get(w)[0]);
+                    if (replace) tiles.set(idx, t);
+                    else tiles.add(idx + 1, t);
+                    saveQuick();
+                    buildQuick();
+                    tiles.get(replace ? idx : idx + 1).view.requestFocus();
+                })
+                .show();
+    }
+
+    private void startQuickMove(int idx) {
+        qMoving = idx;
+        showHint("◀ ▶  двигать        OK или Назад — готово", true);
+        View v = tiles.get(idx).view;
+        v.requestFocus();
+        v.animate().translationY(-px(5)).setDuration(150).start();
+    }
+
+    private void endQuickMove() {
+        qMoving = -1;
+        saveQuick();
+        for (Tile t : tiles) t.view.setTranslationY(0);
+        hideHint();
+    }
+
+    private void openInput(String inputId) {
+        try {
+            TvInputManager tm = (TvInputManager) getSystemService(Context.TV_INPUT_SERVICE);
+            TvInputInfo in = inputId == null ? null : tm.getTvInputInfo(inputId);
+            if (in != null && in.getType() == TvInputInfo.TYPE_TUNER) {
+                Intent live = launchIntent("com.mediatek.wwtv.tvcenter");
+                if (live == null) live = new Intent(Intent.ACTION_VIEW, TvContract.buildChannelsUriForInput(inputId));
+                startActivity(live.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                return;
+            }
+        } catch (RuntimeException ignored) {
+            // treat it as a passthrough input
+        }
+        if (inputId != null) {
+            try {
+                startActivity(new Intent(Intent.ACTION_VIEW, TvContract.buildChannelUriForPassthroughInput(inputId))
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                return;
+            } catch (ActivityNotFoundException ignored) {
+                // fall through to the inputs page
+            }
+        }
+        try {
+            startActivity(new Intent("android.settings.INPUT_SETTINGS").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        } catch (ActivityNotFoundException e) {
+            startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        }
     }
 
     private void checkTorrServe() {
@@ -1100,18 +1356,19 @@ public final class HomeActivity extends Activity {
         });
     }
 
-    private void toggleLight() {
-        if (lightId == null) {
-            startActivity(new Intent(this, DimActivity.class));
+    private void toggleTuya(Tile t, String devId) {
+        JSONObject o = tuyaDevice(devId);
+        if (o == null || o.optString("switch_code").isEmpty()) {
+            startActivity(new Intent(this, DimActivity.class));   // a sensor: show the full screen
             return;
         }
         String id = Store.str(this, Store.TUYA_ID), secret = Store.str(this, Store.TUYA_SECRET);
-        final String dev = lightId, code = lightCode, name = lightName;
-        final boolean on = lightOn;
-        qLightSub.setText(on ? "Выключаю…" : "Включаю…");
+        final String code = o.optString("switch_code"), name = o.optString("name");
+        final boolean on = o.optBoolean("switch_on");
+        t.subT.setText(on ? "Выключаю…" : "Включаю…");
         io.execute(() -> {
             try {
-                Tuya.command(id, secret, dev, code, !on);
+                Tuya.command(id, secret, devId, code, !on);
                 Thread.sleep(1200);
                 Store.prefs(this).edit().putLong(Store.TUYA_AT, 0).apply();
                 Refresher.kick(this, true);

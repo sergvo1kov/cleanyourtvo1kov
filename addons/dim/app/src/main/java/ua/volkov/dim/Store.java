@@ -55,6 +55,7 @@ final class Store {
     static final String MUST_NICK = "must_nick";
     static final String MUST_LIST = "must_list";
     static final String MUST_AT = "must_at";
+    static final String QUICK = "quick";              // bottom row slots, comma separated specs
 
     private Store() {}
 
