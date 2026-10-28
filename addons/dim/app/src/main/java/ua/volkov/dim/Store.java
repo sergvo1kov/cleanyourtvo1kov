@@ -1,0 +1,56 @@
+package ua.volkov.dim;
+
+import android.content.Context;
+import android.content.SharedPreferences;
+
+/** Settings (tokens) and the last fetched state, in the app's private preferences. */
+final class Store {
+    // Settings
+    static final String ALERTS_TOKEN = "alerts_token";
+    static final String TUYA_ID = "tuya_id";
+    static final String TUYA_SECRET = "tuya_secret";
+
+    // Alerts: state -1 unknown, 0 calm, 1 alert in our area, 2 alert in part of the raion
+    static final String ALERT_STATE = "alert_state";
+    static final String ALERT_SINCE = "alert_since";
+    static final String ALERT_SCOPE = "alert_scope";
+    static final String ALERT_OBLASTS = "alert_oblasts";
+    static final String ALERT_LIST = "alert_list";
+    static final String ALERT_AT = "alert_at";
+    static final String ALERT_SOURCE = "alert_source";
+
+    // Weather
+    static final String W_TEMP = "w_temp";
+    static final String W_FEELS = "w_feels";
+    static final String W_CODE = "w_code";
+    static final String W_DAY = "w_day";
+    static final String W_WIND = "w_wind";
+    static final String W_HUM = "w_hum";
+    static final String W_MAX = "w_max";
+    static final String W_MIN = "w_min";
+    static final String W_AT = "w_at";
+
+    // Internet
+    static final String NET_OK = "net_ok";
+    static final String NET_AT = "net_at";
+    static final String SPEED_DOWN = "speed_down";
+    static final String SPEED_UP = "speed_up";
+    static final String SPEED_PING = "speed_ping";
+    static final String SPEED_AT = "speed_at";
+
+    // Tuya: the device list as JSON [{name, online, summary}]
+    static final String TUYA_DEVICES = "tuya_devices";
+    static final String TUYA_AT = "tuya_at";
+    static final String TUYA_ERROR = "tuya_error";
+
+    private Store() {}
+
+    static SharedPreferences prefs(Context ctx) {
+        return ctx.getApplicationContext().getSharedPreferences("dim", Context.MODE_PRIVATE);
+    }
+
+    static String str(Context ctx, String key) {
+        String v = prefs(ctx).getString(key, "");
+        return v == null ? "" : v.trim();
+    }
+}

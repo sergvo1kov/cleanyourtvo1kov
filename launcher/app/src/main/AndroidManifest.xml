@@ -25,6 +25,8 @@
     <!-- Android 11+ package visibility: lets the launcher list the TV apps it shows as tiles, and the
          apps that declare a module card (docs/specs/card.md). -->
     <queries>
+        <!-- Fork-only: the Dim add-on's status row (HomeStatus). -->
+        <provider android:authorities="ua.volkov.dim.status" />
         <!-- The standard settings handlers, so package visibility doesn't hide them and send the pills to a vendor fallback by mistake. -->
         <intent>
             <action android:name="android.settings.SETTINGS" />

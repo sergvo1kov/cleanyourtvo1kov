@@ -5,7 +5,7 @@ name: Build launcher APK
 on:
   push:
     branches: [main]
-    paths: ["launcher/**", ".github/workflows/build-apk.yml"]
+    paths: ["launcher/**", "addons/dim/**", ".github/workflows/build-apk.yml"]
   workflow_dispatch:
 
 jobs:
@@ -31,13 +31,19 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew --no-daemon testReleaseUnitTest assembleRelease
-      - name: Name the APK
+      - name: Build the Dim add-on
+        working-directory: addons/dim
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRelease
+      - name: Name the APKs
         run: |
           mkdir out
           cp launcher/app/build/outputs/apk/release/app-release.apk "out/tvhome-${GITHUB_SHA::7}.apk"
-          echo "APK: $(( $(stat -c %s out/*.apk) / 1024 )) KB"
+          cp addons/dim/app/build/outputs/apk/release/app-release.apk "out/dim-${GITHUB_SHA::7}.apk"
+          ls -l out
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: launcher-apk
+          name: tv-apks
           path: out/*.apk
           retention-days: 30

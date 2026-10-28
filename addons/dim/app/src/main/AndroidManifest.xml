@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-feature android:name="android.software.leanback" android:required="false" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+
+    <!-- alerts.in.ua / ubilling (alerts), Open-Meteo (weather), Cloudflare (speed test), Tuya (Smart Life). -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:allowBackup="false"
+        android:banner="@drawable/banner"
+        android:icon="@drawable/icon"
+        android:label="@string/app_name"
+        android:supportsRtl="false"
+        android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen">
+
+        <activity
+            android:name=".DimActivity"
+            android:exported="true"
+            android:screenOrientation="landscape"
+            android:windowSoftInputMode="adjustPan">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="com.gathin.tvhome.category.DOCK_CARD" />
+            </intent-filter>
+            <meta-data android:name="com.gathin.tvhome.card" android:resource="@xml/module_card" />
+        </activity>
+
+        <!-- The one row the launcher reads for its panel under the clock. Weather and alert state only; no secrets. -->
+        <provider
+            android:name=".StatusProvider"
+            android:authorities="ua.volkov.dim.status"
+            android:exported="true" />
+    </application>
+</manifest>

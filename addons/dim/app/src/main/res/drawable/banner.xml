@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A house with a lit window on a night sky. Drawn for this add-on. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp" android:height="180dp"
+    android:viewportWidth="320" android:viewportHeight="180">
+    <path android:fillColor="#FF0B0F1A" android:pathData="M0,0h320v180h-320z" />
+    <path android:fillColor="#FF1C2333" android:pathData="M0,130h320v50h-320z" />
+    <path android:fillColor="#FFF2F2F7" android:pathData="M160,40l52,42v58h-104v-58z" />
+    <path android:fillColor="#FFFFD60A" android:pathData="M146,96h28v24h-28z" />
+    <path android:fillColor="#FFFF453A" android:pathData="M232,52m-8,0a8,8 0,1 1,16 0a8,8 0,1 1,-16 0" />
+</vector>

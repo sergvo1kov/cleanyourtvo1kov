@@ -195,6 +195,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView raceKicker, raceHeadline, raceSessions;
     /** game_day: each team's next game from an add-on, rotating in the race panel; null when the key is off. */
     private GameDay gameDay;
+    /** Fork-only: the Dim add-on's alert/weather/internet line in the race panel's place; null without the add-on. */
+    private HomeStatus homeStatus;
     private View raceBar;
     private LinearLayout racePager;
     private long rotationStart;
@@ -536,6 +538,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         raceBar = findViewById(R.id.raceBar);
         racePager = findViewById(R.id.racePager);
         gameDay = GameDay.create(this, cfg.gameDay, handler, this::updatePanel);
+        homeStatus = HomeStatus.create(this, handler, this::updatePanel);
         // The rotation runs on the clock that never jumps: setting the TV's time must not stall or stretch a turn.
         rotationStart = SystemClock.elapsedRealtime();
         showStats = cfg.showStats;
@@ -1054,6 +1057,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         if (showStats) startStats();
         if (gameDay != null) gameDay.start();
+        if (homeStatus != null) homeStatus.start();
         sky.update();
         wallpaperPlayer.start();
         handler.postDelayed(minuteTick, MINUTE_MS);
@@ -1235,6 +1239,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         startPending = null;   // leaving Home before the network came back: the boot's app stays closed
         stopStats();
         if (gameDay != null) gameDay.stop();
+        if (homeStatus != null) homeStatus.stop();
         handler.removeCallbacks(turnTick);
         if (diya != null) diya.stop();
         cancelPendingFocusScroll();
@@ -1290,6 +1295,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onDestroy() {
         super.onDestroy();
         if (gameDay != null) gameDay.shutdown();
+        if (homeStatus != null) homeStatus.shutdown();
         unregisterReceiver(packageReceiver);
         wallpaperPlayer.close();
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
@@ -2631,6 +2637,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * each team's next game takes a turn there, and the theme's F1 weekend is one more turn drawn as today.
      */
     private void updatePanel() {
+        if (showHomeStatus()) return;
         if (gameDay == null) {
             updateRace();
             return;
@@ -2680,6 +2687,31 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         showPager(turns.size(), on);
         if (turns.size() > 1 && !stopped) handler.postDelayed(turnTick, GameDay.delayToNextTurn(since, seconds));
+    }
+
+    /** Fork-only: the Dim add-on's line, when it has one. Returns false to fall back to the race / game panel. */
+    private boolean showHomeStatus() {
+        HomeStatus.Snap s = homeStatus == null ? null : homeStatus.snap();
+        if (s == null) return false;
+        handler.removeCallbacks(turnTick);
+        GradientDrawable bar = new GradientDrawable();
+        bar.setCornerRadius(1.5f * density);
+        bar.setColor(s.colour);
+        raceBar.setBackground(bar);
+        raceKicker.setText(s.kicker);
+        if (s.alert) {
+            String took = HomeStatus.elapsed(s.sinceMs, System.currentTimeMillis());
+            SpannableString line = new SpannableString("\u25CF  " + s.headline + (took.isEmpty() ? "" : "  \u00B7  " + took));
+            line.setSpan(new ForegroundColorSpan(RACE_RED), 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            raceHeadline.setText(line);
+        } else {
+            raceHeadline.setText(s.headline);
+        }
+        raceSessions.setText(s.detail);
+        raceSessions.setVisibility(s.detail.isEmpty() ? View.GONE : View.VISIBLE);
+        racePager.setVisibility(View.GONE);
+        racePanel.setVisibility(View.VISIBLE);
+        return true;
     }
 
     /** One dot per turn, the one on screen bright; none for a single turn. */
