@@ -1044,7 +1044,7 @@ public final class HomeActivity extends Activity {
         List<String[]> c = candidates();
         String firstInput = null, firstSwitch = null, firstSensor = null;
         for (String[] k : c) {
-            if (firstInput == null && k[0].startsWith("input:")) firstInput = k[0];
+            if (firstInput == null && k[0].startsWith("input:") && k[1].toUpperCase(Locale.ROOT).contains("HDMI")) firstInput = k[0];
             if (firstSwitch == null && k[0].startsWith("tuya:") && "switch".equals(k[2])) firstSwitch = k[0];
             if (firstSensor == null && k[0].startsWith("tuya:") && "sensor".equals(k[2])) firstSensor = k[0];
         }
