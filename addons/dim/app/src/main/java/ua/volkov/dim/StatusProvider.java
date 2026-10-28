@@ -51,38 +51,38 @@ public final class StatusProvider extends ContentProvider {
         SharedPreferences p = Store.prefs(ctx);
         Line l = new Line();
         int state = p.getInt(Store.ALERT_STATE, Alerts.UNKNOWN);
-        String scope = p.getString(Store.ALERT_SCOPE, Alerts.RAION);
+        String scope = Alerts.label(p.getString(Store.ALERT_SCOPE, Alerts.RAION));
         String weather = p.getLong(Store.W_AT, 0) == 0 ? ""
                 : "  ·  " + Weather.icon(p.getInt(Store.W_CODE, 0), p.getBoolean(Store.W_DAY, true))
                 + " " + Weather.deg(p.getInt(Store.W_TEMP, 0));
         l.kicker = scope + weather;
         switch (state) {
             case Alerts.ALERT:
-                l.headline = "Повітряна тривога";
+                l.headline = "Воздушная тревога";
                 l.colour = RED;
                 l.alert = true;
                 l.sinceMs = p.getLong(Store.ALERT_SINCE, 0);
                 break;
             case Alerts.PARTIAL:
-                l.headline = "Тривога в частині району";
+                l.headline = "Тревога в части района";
                 l.colour = ORANGE;
                 break;
             case Alerts.CALM:
-                l.headline = "Тривоги немає";
+                l.headline = "Тревоги нет";
                 l.colour = GREEN;
                 break;
             default:
-                l.headline = "Немає даних про тривоги";
+                l.headline = "Нет данных о тревогах";
                 l.colour = GREY;
         }
         StringBuilder d = new StringBuilder();
         int oblasts = p.getInt(Store.ALERT_OBLASTS, 0);
-        if (state != Alerts.UNKNOWN) d.append(oblasts == 0 ? "По Україні тихо" : "Тривога в " + Alerts.oblastsWord(oblasts));
+        if (state != Alerts.UNKNOWN) d.append(oblasts == 0 ? "По Украине тихо" : "Тревога в " + Alerts.oblastsWord(oblasts));
         if (p.getLong(Store.NET_AT, 0) > 0) {
             if (d.length() > 0) d.append("   ·   ");
-            d.append(p.getBoolean(Store.NET_OK, false) ? "Інтернет ✓" : "Інтернету немає");
+            d.append(p.getBoolean(Store.NET_OK, false) ? "Интернет ✓" : "Интернета нет");
             if (p.getBoolean(Store.NET_OK, false) && p.getLong(Store.SPEED_AT, 0) > 0) {
-                d.append(" ").append(Math.round(p.getFloat(Store.SPEED_DOWN, 0))).append(" Мбіт/с");
+                d.append(" ").append(Math.round(p.getFloat(Store.SPEED_DOWN, 0))).append(" Мбит/с");
             }
         }
         l.detail = d.toString();

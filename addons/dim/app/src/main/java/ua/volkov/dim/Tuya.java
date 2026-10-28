@@ -103,13 +103,13 @@ final class Tuya {
         if (c.contains("battery_percentage") || c.equals("battery_value") || c.equals("residual_electricity")) {
             return "батарея " + v + "%";
         }
-        if (c.equals("doorcontact_state")) return Boolean.TRUE.equals(v) ? "відчинено" : "зачинено";
-        if (c.equals("pir")) return "pir".equals(String.valueOf(v)) ? "рух" : "тихо";
-        if (c.equals("watersensor_state")) return "alarm".equals(String.valueOf(v)) ? "ПРОТІКАННЯ" : "сухо";
-        if (c.equals("smoke_sensor_status")) return "alarm".equals(String.valueOf(v)) ? "ДИМ" : "ок";
+        if (c.equals("doorcontact_state")) return Boolean.TRUE.equals(v) ? "открыто" : "закрыто";
+        if (c.equals("pir")) return "pir".equals(String.valueOf(v)) ? "движение" : "тихо";
+        if (c.equals("watersensor_state")) return "alarm".equals(String.valueOf(v)) ? "ПРОТЕЧКА" : "сухо";
+        if (c.equals("smoke_sensor_status")) return "alarm".equals(String.valueOf(v)) ? "ДЫМ" : "ок";
         if ((c.equals("switch") || c.equals("switch_1") || c.equals("switch_led") || c.equals("switch_led_1"))
                 && v instanceof Boolean) {
-            return (Boolean) v ? "увімкнено" : "вимкнено";
+            return (Boolean) v ? "включено" : "выключено";
         }
         if (c.equals("cur_power") && v instanceof Number) {
             return String.format(Locale.ROOT, "%.0f Вт", ((Number) v).doubleValue() / 10.0);
@@ -152,7 +152,7 @@ final class Tuya {
         Http.Response r = Http.get(BASE + pathQuery, h, 15_000);
         JSONObject o = new JSONObject(r.body);
         if (!o.optBoolean("success", false) && o.optInt("code") != 1010) {
-            throw new IOException("Tuya: " + o.optString("msg", "помилка") + " (" + o.optInt("code") + ")");
+            throw new IOException("Tuya: " + o.optString("msg", "ошибка") + " (" + o.optInt("code") + ")");
         }
         return o;
     }

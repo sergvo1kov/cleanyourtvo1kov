@@ -40,8 +40,8 @@ final class Alerts {
     private static Result fetchAlertsInUa(String token) throws IOException, JSONException {
         Http.Response r = Http.get("https://api.alerts.in.ua/v1/alerts/active.json",
                 Collections.singletonMap("Authorization", "Bearer " + token), 15_000);
-        if (r.code == 401 || r.code == 403) throw new IOException("alerts.in.ua: токен не прийнято (" + r.code + ")");
-        if (r.code == 429) throw new IOException("alerts.in.ua: забагато запитів");
+        if (r.code == 401 || r.code == 403) throw new IOException("alerts.in.ua: токен не принят (" + r.code + ")");
+        if (r.code == 429) throw new IOException("alerts.in.ua: слишком много запросов");
         if (r.code != 200) throw new IOException("alerts.in.ua: HTTP " + r.code);
         return parseAlertsInUa(new JSONObject(r.body));
     }
@@ -88,7 +88,7 @@ final class Alerts {
         res.source = "ubilling.net.ua";
         res.scope = OBLAST;
         JSONObject states = new JSONObject(r.body).optJSONObject("states");
-        if (states == null) throw new IOException("ubilling: невідомий формат");
+        if (states == null) throw new IOException("ubilling: неизвестный формат");
         res.state = CALM;
         for (Iterator<String> it = states.keys(); it.hasNext(); ) {
             String name = it.next();
@@ -136,10 +136,17 @@ final class Alerts {
         return b.toString();
     }
 
-    /** "7 областях" with the right Ukrainian ending. */
+    /** "7 областях" with the right Russian ending. */
     static String oblastsWord(int n) {
         int m10 = n % 10, m100 = n % 100;
-        if (m10 == 1 && m100 != 11) return n + " області";
+        if (m10 == 1 && m100 != 11) return n + " области";
         return n + " областях";
+    }
+
+    /** The API's Ukrainian scope names, as shown on screen. */
+    static String label(String scope) {
+        if (RAION.equals(scope)) return "Одесский район";
+        if (OBLAST.equals(scope)) return "Одесская область";
+        return scope;
     }
 }

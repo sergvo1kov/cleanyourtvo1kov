@@ -100,9 +100,9 @@ public final class DimActivity extends Activity {
         scroll.addView(col);
         root.addView(scroll);
 
-        TextView title = text("Дім", 34, WHITE, true);
+        TextView title = text("Дом", 34, WHITE, true);
         col.addView(title);
-        updated = text("Одеса", 14, FAINT, false);
+        updated = text("Одесса", 14, FAINT, false);
         col.addView(updated, margins(0, 2, 0, 22));
 
         // Row 1: alert (wide) + weather
@@ -142,17 +142,17 @@ public final class DimActivity extends Activity {
         // Row 2: internet + speed test, settings
         LinearLayout row2 = row();
         LinearLayout net = card(v -> runSpeedTest());
-        netHead = text("Інтернет", 22, WHITE, true);
+        netHead = text("Интернет", 22, WHITE, true);
         net.addView(netHead);
         netSpeed = text("", 18, DIM, false);
         net.addView(netSpeed, margins(0, 8, 0, 0));
-        netHint = text("OK — перевірити швидкість", 13, FAINT, false);
+        netHint = text("OK — проверить скорость", 13, FAINT, false);
         net.addView(netHint, margins(0, 10, 0, 0));
         row2.addView(net, weight(2, 0, 0, 20, 0));
 
         LinearLayout settings = card(v -> openSettings());
-        settings.addView(text("Налаштування", 22, WHITE, true));
-        settings.addView(text("Токен тривог, Smart Life", 14, FAINT, false), margins(0, 8, 0, 0));
+        settings.addView(text("Настройки", 22, WHITE, true));
+        settings.addView(text("Токен тревог, Smart Life", 14, FAINT, false), margins(0, 8, 0, 0));
         row2.addView(settings, weight(1, 0, 0, 0, 0));
         col.addView(row2, margins(0, 0, 0, 30));
 
@@ -224,38 +224,38 @@ public final class DimActivity extends Activity {
         SharedPreferences p = Store.prefs(this);
         StatusProvider.Line line = StatusProvider.line(this);
         long at = Math.max(p.getLong(Store.ALERT_AT, 0), p.getLong(Store.W_AT, 0));
-        updated.setText(at == 0 ? "Одеса" : "Одеса  ·  оновлено " + hhmm(at));
+        updated.setText(at == 0 ? "Одесса" : "Одесса  ·  обновлено " + hhmm(at));
 
         alertDot.setTextColor(line.colour);
         alertHead.setText(line.headline);
-        String scope = p.getString(Store.ALERT_SCOPE, Alerts.RAION);
+        String scope = Alerts.label(p.getString(Store.ALERT_SCOPE, Alerts.RAION));
         String sub = scope;
-        if (line.alert && line.sinceMs > 0) sub += "  ·  з " + hhmm(line.sinceMs) + " (" + elapsed(line.sinceMs) + ")";
+        if (line.alert && line.sinceMs > 0) sub += "  ·  с " + hhmm(line.sinceMs) + " (" + elapsed(line.sinceMs) + ")";
         String source = p.getString(Store.ALERT_SOURCE, "");
         if (p.getInt(Store.ALERT_STATE, Alerts.UNKNOWN) == Alerts.UNKNOWN && !source.isEmpty()) sub += "  ·  " + source;
         alertSub.setText(sub);
         String list = p.getString(Store.ALERT_LIST, "");
-        alertList.setText(list.isEmpty() ? "По Україні зараз тихо" : "Тривога зараз: " + list);
+        alertList.setText(list.isEmpty() ? "По Украине сейчас тихо" : "Тревога сейчас: " + list);
 
         if (p.getLong(Store.W_AT, 0) > 0) {
             wIcon.setText(Weather.icon(p.getInt(Store.W_CODE, 0), p.getBoolean(Store.W_DAY, true)));
             wTemp.setText(Weather.deg(p.getInt(Store.W_TEMP, 0)));
             wWords.setText(Weather.words(p.getInt(Store.W_CODE, 0)) + "  ·  " + Weather.deg(p.getInt(Store.W_MAX, 0))
                     + " / " + Weather.deg(p.getInt(Store.W_MIN, 0)));
-            wMore.setText("Відчувається " + Weather.deg(p.getInt(Store.W_FEELS, 0)) + "\nВітер "
-                    + p.getInt(Store.W_WIND, 0) + " км/год  ·  Вологість " + p.getInt(Store.W_HUM, 0) + "%");
+            wMore.setText("Ощущается " + Weather.deg(p.getInt(Store.W_FEELS, 0)) + "\nВетер "
+                    + p.getInt(Store.W_WIND, 0) + " км/ч  ·  Влажность " + p.getInt(Store.W_HUM, 0) + "%");
         } else {
-            wWords.setText("Погода завантажується…");
+            wWords.setText("Погода загружается…");
         }
 
         if (!testing) {
             boolean ok = p.getBoolean(Store.NET_OK, false);
-            netHead.setText(p.getLong(Store.NET_AT, 0) == 0 ? "Інтернет" : ok ? "Інтернет ✓" : "Інтернету немає");
+            netHead.setText(p.getLong(Store.NET_AT, 0) == 0 ? "Интернет" : ok ? "Интернет ✓" : "Интернета нет");
             long sAt = p.getLong(Store.SPEED_AT, 0);
-            netSpeed.setText(sAt == 0 ? "Швидкість ще не перевіряли"
-                    : String.format(Locale.ROOT, "↓ %.0f   ↑ %.0f Мбіт/с   ·   пінг %.0f мс",
+            netSpeed.setText(sAt == 0 ? "Скорость ещё не проверяли"
+                    : String.format(Locale.ROOT, "↓ %.0f   ↑ %.0f Мбит/с   ·   пинг %.0f мс",
                     p.getFloat(Store.SPEED_DOWN, 0), p.getFloat(Store.SPEED_UP, 0), p.getFloat(Store.SPEED_PING, 0)));
-            netHint.setText(sAt == 0 ? "OK — перевірити швидкість" : "Перевірено о " + hhmm(sAt) + "  ·  OK — ще раз");
+            netHint.setText(sAt == 0 ? "OK — проверить скорость" : "Проверено в " + hhmm(sAt) + "  ·  OK — ещё раз");
         }
 
         renderDevices(p);
@@ -264,7 +264,7 @@ public final class DimActivity extends Activity {
     private void renderDevices(SharedPreferences p) {
         devices.removeAllViews();
         if (Store.str(this, Store.TUYA_ID).isEmpty()) {
-            devices.addView(text("Додайте Tuya Access ID і Access Secret у Налаштуваннях", 15, FAINT, false));
+            devices.addView(text("Добавьте Tuya Access ID и Access Secret в Настройках", 15, FAINT, false));
             return;
         }
         String err = p.getString(Store.TUYA_ERROR, "");
@@ -274,9 +274,9 @@ public final class DimActivity extends Activity {
         } catch (Exception e) {
             arr = new JSONArray();
         }
-        if (!err.isEmpty()) devices.addView(text("Помилка: " + err, 14, 0xFFFF9F0A, false), margins(0, 0, 0, 10));
+        if (!err.isEmpty()) devices.addView(text("Ошибка: " + err, 14, 0xFFFF9F0A, false), margins(0, 0, 0, 10));
         if (arr.length() == 0) {
-            if (err.isEmpty()) devices.addView(text("Завантаження пристроїв…", 15, FAINT, false));
+            if (err.isEmpty()) devices.addView(text("Загрузка устройств…", 15, FAINT, false));
             return;
         }
         LinearLayout r = null;
@@ -294,7 +294,7 @@ public final class DimActivity extends Activity {
             name.setEllipsize(TextUtils.TruncateAt.END);
             c.addView(name);
             boolean online = d.optBoolean("online", true);
-            String sum = online ? d.optString("summary") : "не в мережі";
+            String sum = online ? d.optString("summary") : "не в сети";
             TextView s = text(sum.isEmpty() ? "—" : sum, 14, online ? DIM : 0xFFFF9F0A, false);
             s.setMaxLines(2);
             c.addView(s, margins(0, 6, 0, 0));
@@ -315,9 +315,9 @@ public final class DimActivity extends Activity {
     private void runSpeedTest() {
         if (testing) return;
         testing = true;
-        netHead.setText("Перевірка швидкості…");
-        netSpeed.setText("пінг…");
-        netHint.setText("Близько 20 секунд");
+        netHead.setText("Проверка скорости…");
+        netSpeed.setText("пинг…");
+        netHint.setText("Около 20 секунд");
         final float[] shown = new float[3];
         new Thread(() -> {
             try {
@@ -325,9 +325,9 @@ public final class DimActivity extends Activity {
                     if ("ping".equals(phase)) shown[2] = (float) value;
                     else if ("down".equals(phase)) shown[0] = (float) value;
                     else shown[1] = (float) value;
-                    netSpeed.setText(String.format(Locale.ROOT, "↓ %.0f   ↑ %.0f Мбіт/с   ·   пінг %.0f мс",
+                    netSpeed.setText(String.format(Locale.ROOT, "↓ %.0f   ↑ %.0f Мбит/с   ·   пинг %.0f мс",
                             shown[0], shown[1], shown[2]));
-                    netHint.setText("down".equals(phase) ? "Завантаження…" : "up".equals(phase) ? "Віддача…" : "Пінг");
+                    netHint.setText("down".equals(phase) ? "Загрузка…" : "up".equals(phase) ? "Отдача…" : "Пинг");
                 }));
                 Store.prefs(this).edit()
                         .putFloat(Store.SPEED_DOWN, (float) r.downMbps)
@@ -345,7 +345,7 @@ public final class DimActivity extends Activity {
                 main.post(() -> {
                     testing = false;
                     render();
-                    netHint.setText("Не вдалося: " + e.getMessage());
+                    netHint.setText("Не удалось: " + e.getMessage());
                 });
             }
         }).start();
@@ -355,13 +355,13 @@ public final class DimActivity extends Activity {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(px(24), px(8), px(24), px(0));
-        EditText token = field(box, "Токен alerts.in.ua (порожньо — дані по області)", Store.ALERTS_TOKEN, false);
+        EditText token = field(box, "Токен alerts.in.ua (пусто — данные по области)", Store.ALERTS_TOKEN, false);
         EditText id = field(box, "Tuya Access ID / Client ID", Store.TUYA_ID, false);
         EditText secret = field(box, "Tuya Access Secret / Client Secret", Store.TUYA_SECRET, true);
         new AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
-                .setTitle("Налаштування")
+                .setTitle("Настройки")
                 .setView(box)
-                .setPositiveButton("Зберегти", (d, w) -> {
+                .setPositiveButton("Сохранить", (d, w) -> {
                     Store.prefs(this).edit()
                             .putString(Store.ALERTS_TOKEN, token.getText().toString().trim())
                             .putString(Store.TUYA_ID, id.getText().toString().trim())
@@ -373,7 +373,7 @@ public final class DimActivity extends Activity {
                     Refresher.kick(this, true);
                     render();
                 })
-                .setNegativeButton("Скасувати", null)
+                .setNegativeButton("Отмена", null)
                 .show();
     }
 
@@ -399,6 +399,6 @@ public final class DimActivity extends Activity {
 
     private static String elapsed(long since) {
         long min = Math.max(0, (System.currentTimeMillis() - since) / 60_000L);
-        return min < 60 ? min + " хв" : (min / 60) + " год " + (min % 60) + " хв";
+        return min < 60 ? min + " мин" : (min / 60) + " ч " + (min % 60) + " мин";
     }
 }

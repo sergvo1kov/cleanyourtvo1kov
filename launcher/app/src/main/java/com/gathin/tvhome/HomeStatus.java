@@ -144,11 +144,11 @@ final class HomeStatus {
         return i < 0 || c.isNull(i) ? 0 : c.getLong(i);
     }
 
-    /** "23 хв", "1 год 05 хв": how long the alert has been on. */
+    /** "23 мин", "1 ч 05 мин": how long the alert has been on. */
     static String elapsed(long sinceMs, long now) {
         if (sinceMs <= 0 || now < sinceMs) return "";
         long min = (now - sinceMs) / 60_000L;
-        if (min < 60) return min + " хв";
-        return (min / 60) + " год " + String.format(java.util.Locale.ROOT, "%02d", min % 60) + " хв";
+        if (min < 60) return min + " мин";
+        return (min / 60) + " ч " + String.format(java.util.Locale.ROOT, "%02d", min % 60) + " мин";
     }
 }
