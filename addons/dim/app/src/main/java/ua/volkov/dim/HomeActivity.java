@@ -256,12 +256,12 @@ public final class HomeActivity extends Activity {
         clock.setTextSize(TypedValue.COMPLEX_UNIT_SP, 32);
         clock.setTextColor(txt);
         clock.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
-        right.addView(clock);
+        right.addView(clock, endAligned(0));
         dateLine = text("", 11, sub, false);
-        right.addView(dateLine);
+        right.addView(dateLine, endAligned(0));
         alertPill = text("", 10, 0xFF32D74B, true);
         alertPill.setPadding(px(8), px(2), px(8), px(2));
-        right.addView(alertPill, margins(0, 4, 0, 0));
+        right.addView(alertPill, endAligned(5));
         titleRow.addView(right, new FrameLayout.LayoutParams(-2, -2, Gravity.END | Gravity.BOTTOM));
         col.addView(titleRow, lp(-1, -2, 0, 6, 0, 0));
 
@@ -321,7 +321,9 @@ public final class HomeActivity extends Activity {
         // all apps page
         appsPage = new ScrollView(this);
         appsPage.setVisibility(View.GONE);
-        appsPage.setClipToPadding(false);
+        appsPage.setClipChildren(true);
+        appsPage.setClipToPadding(true);
+        appsPage.setVerticalScrollBarEnabled(false);
         appsGrid = new LinearLayout(this);
         appsGrid.setOrientation(LinearLayout.VERTICAL);
         appsGrid.setPadding(px(8), px(14), px(8), px(36));
@@ -329,7 +331,7 @@ public final class HomeActivity extends Activity {
         appsGrid.setClipChildren(false);
         appsPage.addView(appsGrid);
         FrameLayout.LayoutParams al = new FrameLayout.LayoutParams(-1, -1);
-        al.setMargins(-px(8), 0, -px(8), 0);
+        al.setMargins(-px(8), px(10), -px(8), 0);
         pages.addView(appsPage, al);
 
         return root;
@@ -1268,6 +1270,13 @@ public final class HomeActivity extends Activity {
         t.setTypeface(Typeface.create(bold ? "sans-serif-medium" : "sans-serif", Typeface.NORMAL));
         t.setIncludeFontPadding(false);
         return t;
+    }
+
+    private LinearLayout.LayoutParams endAligned(int topDp) {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
+        lp.gravity = Gravity.END;
+        lp.topMargin = px(topDp);
+        return lp;
     }
 
     private LinearLayout.LayoutParams margins(int l, int t, int r, int b) {
