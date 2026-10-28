@@ -154,6 +154,7 @@ public final class HomeActivity extends Activity {
         main.post(tick);
         main.post(slowTick);
         renderFavs();
+        io.execute(() -> LampaCards.probe(getApplicationContext()));
     }
 
     @Override
@@ -202,7 +203,7 @@ public final class HomeActivity extends Activity {
 
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
-        col.setPadding(px(52), px(26), px(52), px(14));
+        col.setPadding(px(52), px(22), px(52), px(10));
         col.setClipChildren(false);
         col.setClipToPadding(false);
         root.addView(col, new FrameLayout.LayoutParams(-1, -1));
@@ -258,7 +259,7 @@ public final class HomeActivity extends Activity {
         alertPill.setPadding(px(8), px(2), px(8), px(2));
         right.addView(alertPill, margins(0, 4, 0, 0));
         titleRow.addView(right, new FrameLayout.LayoutParams(-2, -2, Gravity.END | Gravity.BOTTOM));
-        col.addView(titleRow, margins(0, 8, 0, 0));
+        col.addView(titleRow, lp(-1, -2, 0, 6, 0, 0));
 
         // the page that switches between Home and Apps
         FrameLayout pages = new FrameLayout(this);
@@ -273,7 +274,7 @@ public final class HomeActivity extends Activity {
 
         hero = new FrameLayout(this);
         hero.setClipChildren(false);
-        homePage.addView(hero, lp(-1, 168, 0, 12, 0, 0));
+        homePage.addView(hero, lp(-1, 160, 0, 10, 0, 0));
 
         // favourite apps, in a glass band
         LinearLayout band = new LinearLayout(this);
@@ -291,18 +292,18 @@ public final class HomeActivity extends Activity {
         favRow.setPadding(px(2), px(2), px(2), px(2));
         hs.addView(favRow);
         band.addView(hs, new LinearLayout.LayoutParams(-1, -2));
-        homePage.addView(band, lp(-1, -2, 0, 16, 0, 0));
+        homePage.addView(band, lp(-1, -2, 0, 12, 0, 0));
 
         quickRow = new LinearLayout(this);
         quickRow.setClipChildren(false);
-        homePage.addView(quickRow, lp(-1, 50, 0, 14, 0, 0));
+        homePage.addView(quickRow, lp(-1, 46, 0, 12, 0, 0));
         buildQuick();
 
         hint = text("◉  Открыть        ◎  Удерживай OK — переставить или убрать", 10, sub, false);
         View rule = new View(this);
         rule.setBackgroundColor(line);
-        homePage.addView(rule, lp(-1, 1, 0, 12, 0, 0));
-        homePage.addView(hint, lp(-2, -2, 0, 7, 0, 0));
+        homePage.addView(rule, lp(-1, 1, 0, 10, 0, 0));
+        homePage.addView(hint, lp(-2, -2, 0, 6, 0, 0));
 
         // all apps page
         appsPage = new ScrollView(this);
@@ -412,7 +413,7 @@ public final class HomeActivity extends Activity {
         switch (mode) {
             case "alert": caption.setText("Воздушная тревога  ·  " + Alerts.label(p.getString(Store.ALERT_SCOPE, Alerts.RAION))); updateAlertHero(); break;
             case "music": caption.setText(track.app + "  ·  Сейчас играет"); updateMusicHero(); break;
-            case "must": caption.setText("Must  ·  Хочу посмотреть"); break;
+            case "must": caption.setText("Must  ·  Похоже на то, что ты смотрел  ·  OK — открыть в Lampa"); break;
             default: caption.setText("Одесса  ·  сейчас");
         }
     }
@@ -598,7 +599,7 @@ public final class HomeActivity extends Activity {
             FrameLayout frame = new FrameLayout(this);
             frame.setFocusable(true);
             frame.setClickable(true);
-            frame.setOnClickListener(v -> search(title));
+            frame.setOnClickListener(v -> openInLampa(title));
             // the title shows until the poster arrives and covers it
             TextView fallback = text(title, 11, txt, true);
             fallback.setGravity(Gravity.CENTER);
@@ -611,11 +612,11 @@ public final class HomeActivity extends Activity {
             frame.addView(img, new FrameLayout.LayoutParams(-1, -1));
             Images.load(o.optString("poster"), img);
             focusRing(frame, 9);
-            card.addView(frame, new LinearLayout.LayoutParams(px(96), px(140)));
+            card.addView(frame, new LinearLayout.LayoutParams(px(88), px(130)));
             TextView t = text(title, 9, txt, false);
             t.setSingleLine(true);
             t.setEllipsize(TextUtils.TruncateAt.END);
-            t.setMaxWidth(px(96));
+            t.setMaxWidth(px(88));
             card.addView(t, margins(0, 4, 0, 0));
             row.addView(card, margins(0, 0, 12, 0));
         }
@@ -639,7 +640,8 @@ public final class HomeActivity extends Activity {
         Context app = getApplicationContext();
         io.execute(() -> {
             try {
-                JSONArray list = Must.want(app, nick);
+                JSONArray list = Must.similar(app, nick);
+                if (list.length() == 0) list = Must.want(app, nick);
                 if (list.length() > 0) {
                     Store.prefs(app).edit().putString(Store.MUST_LIST, list.toString()).putLong(Store.MUST_AT, now).apply();
                     main.post(() -> heroMode = "");   // rebuild with the new posters
@@ -648,6 +650,19 @@ public final class HomeActivity extends Activity {
                 // must-debug.txt has the details
             }
         });
+    }
+
+    /** Lampa takes a plain search intent and opens its own search with the title filled in. */
+    private void openInLampa(String title) {
+        Intent i = new Intent(Intent.ACTION_SEARCH);
+        i.setPackage("top.rootu.lamps");
+        i.putExtra(SearchManager.QUERY, title);
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            startActivity(i);
+        } catch (ActivityNotFoundException e) {
+            search(title);
+        }
     }
 
     private void search(String title) {

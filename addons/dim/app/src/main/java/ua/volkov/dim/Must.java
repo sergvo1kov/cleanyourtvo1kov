@@ -74,6 +74,70 @@ final class Must {
         return out;
     }
 
+    /**
+     * "Like what you watched": similar titles to the most recent watched ones, without anything already
+     * watched or in Want. [{id, title, poster, year}], at most 24.
+     */
+    static JSONArray similar(Context ctx, String nick) throws Exception {
+        StringBuilder dbg = new StringBuilder();
+        Http.Response r = Http.get(BASE + "/api/users/uri/" + nick, null, 15_000);
+        dbg.append("users/uri ").append(r.code).append('\n');
+        JSONObject user = new JSONObject(r.body);
+        JSONObject lists = user.optJSONObject("lists");
+        java.util.Set<Long> skip = new java.util.HashSet<>();
+        List<Long> watched = new ArrayList<>();
+        if (lists != null) {
+            for (String k : new String[]{"want", "watched", "shows"}) {
+                JSONArray a = lists.optJSONArray(k);
+                if (a == null) continue;
+                for (int i = 0; i < a.length(); i++) {
+                    long id = a.optLong(i);
+                    skip.add(id);
+                    if ("watched".equals(k)) watched.add(id);
+                }
+            }
+        }
+        // the lists are newest first: seed from the last few things watched
+        List<List<JSONObject>> perSeed = new ArrayList<>();
+        for (int i = 0; i < watched.size() && perSeed.size() < 6; i++) {
+            try {
+                Http.Response s = Http.get(BASE + "/api/products/" + watched.get(i) + "/similars", null, 15_000);
+                dbg.append("similars ").append(watched.get(i)).append(' ').append(s.code).append('\n');
+                if (s.code != 200) continue;
+                JSONArray arr = new JSONArray(s.body);
+                List<JSONObject> rows = new ArrayList<>();
+                for (int j = 0; j < arr.length(); j++) rows.add(arr.getJSONObject(j));
+                perSeed.add(rows);
+            } catch (Exception e) {
+                dbg.append("similars error ").append(e).append('\n');
+            }
+        }
+        // interleave the seeds so one film does not fill the row
+        JSONArray out = new JSONArray();
+        java.util.Set<Long> seen = new java.util.HashSet<>(skip);
+        for (int round = 0; out.length() < 24 && round < 30; round++) {
+            boolean any = false;
+            for (List<JSONObject> rows : perSeed) {
+                if (round >= rows.size() || out.length() >= 24) continue;
+                any = true;
+                JSONObject o = rows.get(round);
+                long id = o.optLong("id");
+                if (!seen.add(id) || o.optString("poster_file_path", "").isEmpty() || o.isNull("poster_file_path")) continue;
+                JSONObject row = new JSONObject();
+                row.put("id", id);
+                row.put("title", o.optString("title"));
+                row.put("poster", poster(o.optString("poster_file_path")));
+                String date = o.optString("release_date");
+                row.put("year", date.length() >= 4 ? date.substring(0, 4) : "");
+                out.put(row);
+            }
+            if (!any) break;
+        }
+        dbg.append("result ").append(out.length()).append('\n');
+        dump(ctx, dbg);
+        return out;
+    }
+
     /** Looks for the "want" id list wherever the profile JSON keeps it. */
     static List<Long> wantIds(JSONObject user) {
         List<Long> ids = new ArrayList<>();
@@ -107,7 +171,7 @@ final class Must {
         try {
             File dir = ctx.getExternalFilesDir(null);
             if (dir == null) return;
-            try (FileOutputStream f = new FileOutputStream(new File(dir, "must-debug.txt"))) {
+            try (FileOutputStream f = new FileOutputStream(new File(dir, "must-debug.txt"), true)) {
                 f.write(dbg.toString().getBytes(StandardCharsets.UTF_8));
             }
         } catch (Exception ignored) {

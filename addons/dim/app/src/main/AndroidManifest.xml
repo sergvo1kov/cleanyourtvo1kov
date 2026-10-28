@@ -8,6 +8,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- A home screen lists every TV app to launch it. -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+    <!-- To show the cards TV apps (Lampa) publish to Android TV's home screen. -->
+    <uses-permission android:name="com.android.providers.tv.permission.READ_EPG_DATA" />
 
     <application
         android:allowBackup="false"
