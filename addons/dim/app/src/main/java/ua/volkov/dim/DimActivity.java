@@ -50,6 +50,17 @@ public final class DimActivity extends Activity {
     private TextView wIcon, wTemp, wWords, wMore;
     private TextView netHead, netSpeed, netHint;
     private LinearLayout devices, news;
+    private LinearLayout npBox;
+    private android.widget.ImageView npArt;
+    private TextView npTitle, npSub, npPlay;
+    private NowPlaying.Track track;
+    private final Runnable npTick = new Runnable() {
+        @Override
+        public void run() {
+            renderNowPlaying();
+            main.postDelayed(this, 2_000L);
+        }
+    };
     private boolean testing;
 
     @Override
@@ -72,12 +83,14 @@ public final class DimActivity extends Activity {
         Refresher.kick(this, true);
         render();
         main.postDelayed(tick, 30_000L);
+        main.post(npTick);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         main.removeCallbacks(tick);
+        main.removeCallbacks(npTick);
         getContentResolver().unregisterContentObserver(observer);
     }
 
@@ -156,6 +169,45 @@ public final class DimActivity extends Activity {
         row2.addView(settings, weight(1, 0, 0, 0, 0));
         col.addView(row2, margins(0, 0, 0, 30));
 
+        // Now playing: shown only while a music app has a session
+        npBox = new LinearLayout(this);
+        npBox.setOrientation(LinearLayout.VERTICAL);
+        npBox.setClipChildren(false);
+        npBox.setVisibility(View.GONE);
+        npBox.addView(text("Сейчас играет", 20, WHITE, true), margins(0, 0, 0, 12));
+        LinearLayout npRow = row();
+        npRow.setGravity(Gravity.CENTER_VERTICAL);
+        npArt = new android.widget.ImageView(this);
+        npArt.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
+        npArt.setClipToOutline(true);
+        GradientDrawable artBg = new GradientDrawable();
+        artBg.setCornerRadius(px(16));
+        artBg.setColor(0x22FFFFFF);
+        npArt.setBackground(artBg);
+        npRow.addView(npArt, new LinearLayout.LayoutParams(px(132), px(132)));
+        LinearLayout npText = new LinearLayout(this);
+        npText.setOrientation(LinearLayout.VERTICAL);
+        npTitle = text("", 26, WHITE, true);
+        npTitle.setSingleLine(true);
+        npTitle.setEllipsize(TextUtils.TruncateAt.END);
+        npText.addView(npTitle);
+        npSub = text("", 16, DIM, false);
+        npSub.setSingleLine(true);
+        npSub.setEllipsize(TextUtils.TruncateAt.END);
+        npText.addView(npSub, margins(0, 6, 0, 14));
+        LinearLayout buttons = row();
+        buttons.addView(button("⏮", v -> media(-1)), margins(0, 0, 14, 0));
+        LinearLayout play = button("⏯", v -> media(0));
+        npPlay = (TextView) play.getChildAt(0);
+        buttons.addView(play, margins(0, 0, 14, 0));
+        buttons.addView(button("⏭", v -> media(1)));
+        npText.addView(buttons);
+        LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+        tl.setMargins(px(28), 0, 0, 0);
+        npRow.addView(npText, tl);
+        npBox.addView(npRow);
+        col.addView(npBox, margins(0, 0, 0, 30));
+
         col.addView(text("Экстренно · Monitor", 20, WHITE, true), margins(0, 0, 0, 12));
         news = new LinearLayout(this);
         news.setOrientation(LinearLayout.VERTICAL);
@@ -170,6 +222,42 @@ public final class DimActivity extends Activity {
 
         alert.requestFocus();
         return root;
+    }
+
+    private LinearLayout button(String label, View.OnClickListener onClick) {
+        LinearLayout b = card(onClick);
+        b.setPadding(px(26), px(10), px(26), px(10));
+        b.setGravity(Gravity.CENTER);
+        b.addView(text(label, 24, WHITE, false));
+        return b;
+    }
+
+    private void renderNowPlaying() {
+        NowPlaying.Track t = NowPlaying.current(this);
+        track = t;
+        if (t == null) {
+            if (npBox.findFocus() != null) findViewById(android.R.id.content).requestFocus();
+            npBox.setVisibility(View.GONE);
+            return;
+        }
+        npBox.setVisibility(View.VISIBLE);
+        npTitle.setText(t.title);
+        npSub.setText((t.artist.isEmpty() ? "" : t.artist + "  ·  ") + t.app + (t.playing ? "" : "  ·  на паузе"));
+        npPlay.setText(t.playing ? "⏸" : "▶");
+        if (t.art != null) npArt.setImageBitmap(t.art);
+        else npArt.setImageDrawable(null);
+    }
+
+    /** -1 previous, 0 play/pause, 1 next. */
+    private void media(int what) {
+        NowPlaying.Track t = track;
+        if (t == null || t.controller == null) return;
+        android.media.session.MediaController.TransportControls c = t.controller.getTransportControls();
+        if (what < 0) c.skipToPrevious();
+        else if (what > 0) c.skipToNext();
+        else if (t.playing) c.pause();
+        else c.play();
+        main.postDelayed(this::renderNowPlaying, 400);
     }
 
     private LinearLayout row() {

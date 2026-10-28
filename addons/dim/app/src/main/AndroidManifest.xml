@@ -31,6 +31,17 @@
             <meta-data android:name="com.gathin.tvhome.card" android:resource="@xml/module_card" />
         </activity>
 
+        <!-- Notification access only so Android shares media sessions (Now playing); notifications are not read. -->
+        <service
+            android:name=".NowPlayingListener"
+            android:exported="true"
+            android:label="Дом: сейчас играет"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
         <!-- The one row the launcher reads for its panel under the clock. Weather and alert state only; no secrets. -->
         <provider
             android:name=".StatusProvider"

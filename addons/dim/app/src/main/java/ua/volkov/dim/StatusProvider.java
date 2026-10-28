@@ -19,9 +19,49 @@ public final class StatusProvider extends ContentProvider {
 
     static final int GREEN = 0xFF32D74B, RED = 0xFFFF453A, ORANGE = 0xFFFF9F0A, GREY = 0xFF8E8E93;
 
+    private final java.util.List<android.media.session.MediaController> watched = new java.util.ArrayList<>();
+    private final android.media.session.MediaController.Callback trackChanged =
+            new android.media.session.MediaController.Callback() {
+                @Override
+                public void onMetadataChanged(android.media.MediaMetadata metadata) {
+                    if (getContext() != null) notifyChanged(getContext());
+                }
+
+                @Override
+                public void onPlaybackStateChanged(android.media.session.PlaybackState state) {
+                    if (getContext() != null) notifyChanged(getContext());
+                }
+            };
+
     @Override
     public boolean onCreate() {
+        // Home's "now playing" line follows the music without polling: watch the media sessions.
+        Context ctx = getContext();
+        if (ctx == null) return true;
+        try {
+            android.media.session.MediaSessionManager m =
+                    (android.media.session.MediaSessionManager) ctx.getSystemService(Context.MEDIA_SESSION_SERVICE);
+            android.media.session.MediaSessionManager.OnActiveSessionsChangedListener l = controllers -> {
+                watch(controllers);
+                notifyChanged(ctx);
+            };
+            m.addOnActiveSessionsChangedListener(l, NowPlaying.listener(ctx),
+                    new android.os.Handler(android.os.Looper.getMainLooper()));
+            watch(m.getActiveSessions(NowPlaying.listener(ctx)));
+        } catch (RuntimeException e) {
+            // no notification access yet: Home simply shows no music line
+        }
         return true;
+    }
+
+    private void watch(java.util.List<android.media.session.MediaController> controllers) {
+        for (android.media.session.MediaController c : watched) c.unregisterCallback(trackChanged);
+        watched.clear();
+        if (controllers == null) return;
+        for (android.media.session.MediaController c : controllers) {
+            c.registerCallback(trackChanged, new android.os.Handler(android.os.Looper.getMainLooper()));
+            watched.add(c);
+        }
     }
 
     @Override
@@ -83,6 +123,15 @@ public final class StatusProvider extends ContentProvider {
             d.append(p.getBoolean(Store.NET_OK, false) ? "Интернет ✓" : "Интернета нет");
             if (p.getBoolean(Store.NET_OK, false) && p.getLong(Store.SPEED_AT, 0) > 0) {
                 d.append(" ").append(Math.round(p.getFloat(Store.SPEED_DOWN, 0))).append(" Мбит/с");
+            }
+        }
+        // Music playing (and no alert): the detail line shows the track.
+        if (state != Alerts.ALERT) {
+            NowPlaying.Track t = NowPlaying.current(ctx);
+            if (t != null && t.playing) {
+                d.setLength(0);
+                d.append("♪  ").append(t.title);
+                if (!t.artist.isEmpty()) d.append("  —  ").append(t.artist);
             }
         }
         // A fresh urgent post about Odesa takes the detail line: that is what matters right now.
