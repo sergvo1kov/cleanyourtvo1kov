@@ -120,6 +120,7 @@ public final class HomeActivity extends Activity {
             Refresher.kick(HomeActivity.this, false);
             checkTorrServe();
             refreshMust(false);
+            io.execute(() -> lampa = LampaCards.read(getApplicationContext()));
             renderQuick();
             main.postDelayed(this, 30_000);
         }
@@ -157,7 +158,7 @@ public final class HomeActivity extends Activity {
         main.post(tick);
         main.post(slowTick);
         renderFavs();
-        io.execute(() -> LampaCards.probe(getApplicationContext()));
+        io.execute(() -> lampa = LampaCards.read(getApplicationContext()));
     }
 
     @Override
@@ -225,11 +226,11 @@ public final class HomeActivity extends Activity {
         LinearLayout.LayoutParams dl = new LinearLayout.LayoutParams(px(6), px(6));
         dl.setMargins(px(4), px(2), 0, 0);
         logo.addView(dot, dl);
-        header.addView(logo, new FrameLayout.LayoutParams(-2, -2, Gravity.START | Gravity.CENTER_VERTICAL));
+        // (no wordmark: the header is just the tabs and Settings)
         LinearLayout tabs = new LinearLayout(this);
         tabHome = tab("Главная", v -> showApps(false));
         tabApps = tab("Приложения", v -> showApps(true));
-        TextView tabLife = tab("Smart Life", v -> startActivity(new Intent(this, DimActivity.class)));
+        TextView tabLife = tab("Центр управления", v -> startActivity(new Intent(this, DimActivity.class)));
         tabs.addView(tabHome);
         tabs.addView(tabApps, margins(8, 0, 8, 0));
         tabs.addView(tabLife);
@@ -409,14 +410,7 @@ public final class HomeActivity extends Activity {
             s = "●  Нет данных о тревогах";
         }
         alertPill.setText(s);
-        // the dot by the wordmark: green calm, red (pulsing) alert, orange partial, grey unknown
-        dotShape.setColor(c);
-        boolean pulse = state == Alerts.ALERT;
-        if (pulse != pulsing) {
-            pulsing = pulse;
-            statusDot.animate().cancel();
-            if (pulse) pulseDot(); else statusDot.setAlpha(1f);
-        }
+
         alertPill.setTextColor(light ? darker(c) : c);
         alertPill.setBackground(round((c & 0x00FFFFFF) | 0x29000000, 12, 0));
     }
@@ -452,7 +446,7 @@ public final class HomeActivity extends Activity {
         switch (mode) {
             case "alert": caption.setText("Воздушная тревога  ·  " + Alerts.label(p.getString(Store.ALERT_SCOPE, Alerts.RAION))); updateAlertHero(); break;
             case "music": caption.setText(track.app + "  ·  Сейчас играет"); updateMusicHero(); break;
-            case "must": caption.setText("Must  ·  Похоже на то, что ты смотрел  ·  OK — открыть в Lampa"); break;
+            case "must": caption.setText(lampaCount > 0 ? "Lampa  ·  Must" : "Must"); break;
             default: caption.setText("Одесса  ·  сейчас");
         }
     }
@@ -634,12 +628,16 @@ public final class HomeActivity extends Activity {
             JSONObject o = list.optJSONObject(i);
             if (o == null) continue;
             final String title = o.optString("title");
+            final String lampaIntent = o.optString("intent");
             LinearLayout card = new LinearLayout(this);
             card.setOrientation(LinearLayout.VERTICAL);
             FrameLayout frame = new FrameLayout(this);
             frame.setFocusable(true);
             frame.setClickable(true);
-            frame.setOnClickListener(v -> openInLampa(title));
+            frame.setOnClickListener(v -> {
+                if (!lampaIntent.isEmpty()) openIntentUri(lampaIntent, title);
+                else openInLampa(title);
+            });
             // the title shows until the poster arrives and covers it
             TextView fallback = text(title, 11, txt, true);
             fallback.setGravity(Gravity.CENTER);
@@ -666,12 +664,23 @@ public final class HomeActivity extends Activity {
         hero.addView(hs, hl);
     }
 
+    private volatile JSONArray lampa = new JSONArray();
+    private int lampaCount;
+
+    /** The For you row: Lampa's own cards mixed with Must's picks. */
     private JSONArray mustList() {
+        JSONArray must;
         try {
-            return new JSONArray(Store.prefs(this).getString(Store.MUST_LIST, "[]"));
+            must = new JSONArray(Store.prefs(this).getString(Store.MUST_LIST, "[]"));
         } catch (Exception e) {
-            return new JSONArray();
+            must = new JSONArray();
         }
+        JSONArray l = lampa;
+        if (l.length() != lampaCount) {
+            lampaCount = l.length();
+            heroMode = "";
+        }
+        return LampaCards.mix(l, must);
     }
 
     private void refreshMust(boolean force) {
@@ -693,6 +702,17 @@ public final class HomeActivity extends Activity {
                 // must-debug.txt has the details
             }
         });
+    }
+
+    /** A Lampa card carries its own intent: it opens that exact film in Lampa. */
+    private void openIntentUri(String uri, String title) {
+        try {
+            Intent i = Intent.parseUri(uri, Intent.URI_INTENT_SCHEME);
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(i);
+        } catch (Exception e) {
+            openInLampa(title);
+        }
     }
 
     /** Lampa takes a plain search intent and opens its own search with the title filled in. */
