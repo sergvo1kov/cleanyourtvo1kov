@@ -206,7 +206,7 @@ public final class HomeActivity extends Activity {
 
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
-        col.setPadding(px(52), px(22), px(52), px(10));
+        col.setPadding(px(52), px(22), px(52), px(34));
         col.setClipChildren(false);
         col.setClipToPadding(false);
         root.addView(col, new FrameLayout.LayoutParams(-1, -1));
@@ -303,11 +303,18 @@ public final class HomeActivity extends Activity {
         homePage.addView(quickRow, lp(-1, 46, 0, 12, 0, 0));
         buildQuick();
 
-        hint = text("◉  Открыть        ◎  Удерживай OK — переставить или убрать", 10, sub, false);
+        // hint bar: pinned to the bottom edge, never pushed off screen by the blocks above
+        LinearLayout hintBar = new LinearLayout(this);
+        hintBar.setOrientation(LinearLayout.VERTICAL);
         View rule = new View(this);
         rule.setBackgroundColor(line);
-        homePage.addView(rule, lp(-1, 1, 0, 10, 0, 0));
-        homePage.addView(hint, lp(-2, -2, 0, 6, 0, 0));
+        hintBar.addView(rule, new LinearLayout.LayoutParams(-1, 1));
+        hint = text("◉  Открыть        ◎  Удерживай OK — переставить или убрать", 10, sub, false);
+        hint.setPadding(0, px(6), 0, 0);
+        hintBar.addView(hint);
+        FrameLayout.LayoutParams hb = new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM);
+        hb.setMargins(px(52), 0, px(52), px(10));
+        root.addView(hintBar, hb);
 
         // all apps page
         appsPage = new ScrollView(this);
