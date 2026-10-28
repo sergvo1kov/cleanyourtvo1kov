@@ -64,6 +64,9 @@ public final class HomeActivity extends Activity {
             "com.google.android.youtube.tvmusic", "com.apple.android.music", "org.videolan.vlc"};
     private static final String TORRSERVE = "ru.yourok.torrserve";
     private static final int MAX_FAVS = 12;
+    /** Kept installed but not listed: the previous launcher (a fallback home) and the stock Google TV home. */
+    private static final java.util.Set<String> HIDDEN = new java.util.HashSet<>(java.util.Arrays.asList(
+            "com.gathin.tvhome", "com.google.android.apps.tv.launcherx"));
 
     // palette (set from the theme)
     private int txt, sub, glass, glassFocus, line;
@@ -909,7 +912,7 @@ public final class HomeActivity extends Activity {
         List<String> pkgs = new ArrayList<>();
         for (ResolveInfo r : all) {
             String p = r.activityInfo.packageName;
-            if (!pkgs.contains(p) && !p.equals(getPackageName())) pkgs.add(p);
+            if (!pkgs.contains(p) && !p.equals(getPackageName()) && !HIDDEN.contains(p)) pkgs.add(p);
         }
         Collections.sort(pkgs, (a, b) -> label(a).compareToIgnoreCase(label(b)));
         pkgs.add(0, getPackageName());   // Дом itself (Smart Life, speed test, settings)
