@@ -1,0 +1,19 @@
+{
+  "dock_apps": [
+    "ua.volkov.dim",
+    "com.netflix.ninja",
+    "com.google.android.youtube.tv",
+    "com.apple.atve.androidtv.appletv",
+    "com.amazon.amazonvideo.livingroom"
+  ],
+  "background_color": "#090C14",
+  "wallpaper": true,
+  "dock_glass": true,
+  "icon_only_buttons": false,
+  "app_glow": true,
+  "glow_style": "horizon",
+  "focus_overshoot": false,
+  "advanced_effects": true,
+  "launcher_settings_button": true,
+  "show_home_settings_shortcut": false
+}
