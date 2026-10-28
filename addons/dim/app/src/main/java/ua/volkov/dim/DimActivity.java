@@ -156,7 +156,7 @@ public final class DimActivity extends Activity {
         row2.addView(settings, weight(1, 0, 0, 0, 0));
         col.addView(row2, margins(0, 0, 0, 30));
 
-        col.addView(text("Новости", 20, WHITE, true), margins(0, 0, 0, 12));
+        col.addView(text("Экстренно · Monitor", 20, WHITE, true), margins(0, 0, 0, 12));
         news = new LinearLayout(this);
         news.setOrientation(LinearLayout.VERTICAL);
         news.setClipChildren(false);
@@ -281,7 +281,7 @@ public final class DimActivity extends Activity {
         }
         String err = p.getString(Store.TG_ERROR, "");
         if (arr.length() == 0) {
-            news.addView(text(err.isEmpty() ? "Загрузка новостей…" : "Ошибка: " + err, 15, FAINT, false));
+            news.addView(text(err.isEmpty() ? "Экстренных сообщений за 6 часов нет" : "Ошибка: " + err, 15, FAINT, false));
             return;
         }
         LinearLayout r = null;
@@ -302,7 +302,7 @@ public final class DimActivity extends Activity {
                     .setPositiveButton("Закрыть", null)
                     .show());
             c.addView(text(title + (ms > 0 ? "  ·  " + hhmm(ms) : ""), 13, FAINT, true));
-            TextView t = text(body, 16, WHITE, false);
+            TextView t = text(body, 16, o.optBoolean("odesa") ? 0xFFFF6961 : WHITE, false);
             t.setMaxLines(3);
             t.setEllipsize(TextUtils.TruncateAt.END);
             c.addView(t, margins(0, 6, 0, 0));

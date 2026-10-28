@@ -1,11 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- A house with a lit window on a night sky. Drawn for this add-on. -->
+<!-- Dim banner: a house sending out alert waves, on a night gradient. Drawn for this add-on. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="320dp" android:height="180dp"
     android:viewportWidth="320" android:viewportHeight="180">
-    <path android:fillColor="#FF0B0F1A" android:pathData="M0,0h320v180h-320z" />
-    <path android:fillColor="#FF1C2333" android:pathData="M0,130h320v50h-320z" />
-    <path android:fillColor="#FFF2F2F7" android:pathData="M160,40l52,42v58h-104v-58z" />
-    <path android:fillColor="#FFFFD60A" android:pathData="M146,96h28v24h-28z" />
-    <path android:fillColor="#FFFF453A" android:pathData="M232,52m-8,0a8,8 0,1 1,16 0a8,8 0,1 1,-16 0" />
+    <path android:pathData="M0,0h320v180h-320z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="0" android:startY="0" android:endX="320" android:endY="180"
+                android:startColor="#FF101A33" android:endColor="#FF2B1640" />
+        </aapt:attr>
+    </path>
+    <!-- soft glow behind the house -->
+    <path android:pathData="M160,95m-70,0a70,70 0,1 1,140 0a70,70 0,1 1,-140 0">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="radial" android:centerX="160" android:centerY="95" android:gradientRadius="70"
+                android:startColor="#33FFFFFF" android:endColor="#00FFFFFF" />
+        </aapt:attr>
+    </path>
+    <!-- house -->
+    <path android:fillColor="#FFF5F5F7"
+        android:pathData="M160,52 L203,88 Q206,91 202,91 L196,91 L196,128 Q196,132 192,132 L128,132 Q124,132 124,128 L124,91 L118,91 Q114,91 117,88 Z" />
+    <path android:fillColor="#FF1C2238" android:pathData="M150,108 Q150,104 154,104 L166,104 Q170,104 170,108 L170,132 L150,132 Z" />
+    <!-- alert waves -->
+    <path android:strokeColor="#FFFF453A" android:strokeWidth="5" android:strokeLineCap="round" android:fillColor="#00000000"
+        android:pathData="M214,62 A14,14 0 0,1 224,80" />
+    <path android:strokeColor="#CCFF453A" android:strokeWidth="5" android:strokeLineCap="round" android:fillColor="#00000000"
+        android:pathData="M220,48 A30,30 0 0,1 240,84" />
+    <path android:strokeColor="#80FF453A" android:strokeWidth="5" android:strokeLineCap="round" android:fillColor="#00000000"
+        android:pathData="M226,34 A46,46 0 0,1 256,88" />
 </vector>

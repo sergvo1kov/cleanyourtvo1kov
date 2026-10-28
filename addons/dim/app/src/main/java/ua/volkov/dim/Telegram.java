@@ -16,7 +16,13 @@ import java.util.regex.Pattern;
  * No account, no API key, read only.
  */
 final class Telegram {
-    static final String DEFAULT_CHANNELS = "war_monitor, Sila_GO, mediapivden";
+    static final String DEFAULT_CHANNELS = "war_monitor";
+    /** Only posts about an immediate threat; everything else is dropped. Ukrainian and Russian stems. */
+    private static final Pattern URGENT = Pattern.compile("(?iU)(ракет|баліст|балист|шахед|бпла|мопед|\\bкаб(и|ы|ів|ов)?\\b|крилат|крылат|"
+            + "вибух|взрыв|загроз|угроз|швидкісн|скоростн|пуск|зліт|взлет|взлёт|міг-31|миг-31|ту-95|ту-22|калібр|калибр|"
+            + "кинджал|кинжал|циркон|іскандер|искандер|укритт|укрыт|🚨|‼|❗)");
+    private static final Pattern ODESA = Pattern.compile("(?iU)(одес|одещ|одеськ|одесск)");
+    static final long MAX_AGE_MS = 6 * 3600_000L;
     static final int KEEP = 40;
 
     private static final Pattern TITLE = Pattern.compile(
@@ -88,7 +94,10 @@ final class Telegram {
                     // keep 0
                 }
             }
+            if (!URGENT.matcher(text).find()) continue;
+            if (ms > 0 && System.currentTimeMillis() - ms > MAX_AGE_MS) continue;
             JSONObject o = new JSONObject();
+            o.put("odesa", ODESA.matcher(text).find());
             o.put("channel", ch);
             o.put("title", title);
             o.put("text", text);

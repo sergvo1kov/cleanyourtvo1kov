@@ -85,6 +85,23 @@ public final class StatusProvider extends ContentProvider {
                 d.append(" ").append(Math.round(p.getFloat(Store.SPEED_DOWN, 0))).append(" Мбит/с");
             }
         }
+        // A fresh urgent post about Odesa takes the detail line: that is what matters right now.
+        try {
+            org.json.JSONArray feed = new org.json.JSONArray(p.getString(Store.TG_FEED, "[]"));
+            for (int i = 0; i < feed.length(); i++) {
+                org.json.JSONObject o = feed.getJSONObject(i);
+                long age = System.currentTimeMillis() - o.optLong("ms");
+                if (o.optBoolean("odesa") && age >= 0 && age < 20 * 60_000L) {
+                    String first = o.optString("text").split("\n")[0].trim();
+                    if (first.length() > 80) first = first.substring(0, 79) + "…";
+                    d.setLength(0);
+                    d.append("⚠ ").append(first);
+                    break;
+                }
+            }
+        } catch (Exception ignored) {
+            // no feed yet
+        }
         l.detail = d.toString();
         return l;
     }

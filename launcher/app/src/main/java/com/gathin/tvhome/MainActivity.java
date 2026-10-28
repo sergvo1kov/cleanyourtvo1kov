@@ -720,7 +720,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // game_day: the panel above the dock rides up with the cards instead of being covered by them, and fades
         // out by the time it reaches the clock. The grid's own offset is read, so a jump (Home, a restored focus)
         // lands right too.
-        if (gameDay != null) {
+        if (gameDay != null || homeStatus != null) {
             View clockBlock = findViewById(R.id.leftBlock);
             grid.addOnScrollListener(new RecyclerView.OnScrollListener() {
                 @Override
@@ -728,7 +728,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     int shift = rv.canScrollVertically(-1) ? rv.computeVerticalScrollOffset() : 0;
                     racePanel.setTranslationY(-shift);
                     int room = Math.max(1, racePanel.getTop() - clockBlock.getBottom());
-                    racePanel.setAlpha(Math.max(0f, 1f - shift / (float) room));
+                    // Fork: gone by the time the first row of cards reaches it, so it never shows through them.
+                    racePanel.setAlpha(Math.max(0f, 1f - 2f * shift / (float) room));
                 }
             });
         }
