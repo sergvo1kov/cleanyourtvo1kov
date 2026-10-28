@@ -14,7 +14,7 @@ import java.util.concurrent.Executors;
  * Smart Life every 60 s, the weather every 30 min.
  */
 final class Refresher {
-    static final long ALERTS_MS = 30_000L, TUYA_MS = 60_000L, WEATHER_MS = 30 * 60_000L, RETRY_MS = 5 * 60_000L;
+    static final long ALERTS_MS = 30_000L, TUYA_MS = 60_000L, TG_MS = 120_000L, WEATHER_MS = 30 * 60_000L, RETRY_MS = 5 * 60_000L;
 
     private static final ExecutorService IO = Executors.newSingleThreadExecutor();
     private static volatile boolean busy;
@@ -82,6 +82,17 @@ final class Refresher {
                 e.putString(Store.TUYA_ERROR, String.valueOf(ex.getMessage()));
             }
             e.putLong(Store.TUYA_AT, now);
+            changed = true;
+        }
+
+        if (force || now - p.getLong(Store.TG_AT, 0) > TG_MS) {
+            try {
+                JSONArray feed = Telegram.feed(Telegram.channels(Store.str(ctx, Store.TG_CHANNELS)));
+                e.putString(Store.TG_FEED, feed.toString()).putString(Store.TG_ERROR, "");
+            } catch (Exception ex) {
+                e.putString(Store.TG_ERROR, String.valueOf(ex.getMessage()));
+            }
+            e.putLong(Store.TG_AT, now);
             changed = true;
         }
 

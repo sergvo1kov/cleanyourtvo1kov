@@ -49,7 +49,7 @@ public final class DimActivity extends Activity {
     private TextView updated, alertDot, alertHead, alertSub, alertList;
     private TextView wIcon, wTemp, wWords, wMore;
     private TextView netHead, netSpeed, netHint;
-    private LinearLayout devices;
+    private LinearLayout devices, news;
     private boolean testing;
 
     @Override
@@ -152,9 +152,15 @@ public final class DimActivity extends Activity {
 
         LinearLayout settings = card(v -> openSettings());
         settings.addView(text("Настройки", 22, WHITE, true));
-        settings.addView(text("Токен тревог, Smart Life", 14, FAINT, false), margins(0, 8, 0, 0));
+        settings.addView(text("Тревоги, Smart Life, Telegram", 14, FAINT, false), margins(0, 8, 0, 0));
         row2.addView(settings, weight(1, 0, 0, 0, 0));
         col.addView(row2, margins(0, 0, 0, 30));
+
+        col.addView(text("Новости", 20, WHITE, true), margins(0, 0, 0, 12));
+        news = new LinearLayout(this);
+        news.setOrientation(LinearLayout.VERTICAL);
+        news.setClipChildren(false);
+        col.addView(news, margins(0, 0, 0, 30));
 
         col.addView(text("Smart Life", 20, WHITE, true), margins(0, 0, 0, 12));
         devices = new LinearLayout(this);
@@ -258,7 +264,51 @@ public final class DimActivity extends Activity {
             netHint.setText(sAt == 0 ? "OK — проверить скорость" : "Проверено в " + hhmm(sAt) + "  ·  OK — ещё раз");
         }
 
+        renderNews(p);
         renderDevices(p);
+    }
+
+    private void renderNews(SharedPreferences p) {
+        View focused = getCurrentFocus();
+        boolean keep = focused != null && focused.getParent() != null && focused.getParent().getParent() == news;
+        if (keep) return;   // don't pull the list out from under the remote
+        news.removeAllViews();
+        JSONArray arr;
+        try {
+            arr = new JSONArray(p.getString(Store.TG_FEED, "[]"));
+        } catch (Exception e) {
+            arr = new JSONArray();
+        }
+        String err = p.getString(Store.TG_ERROR, "");
+        if (arr.length() == 0) {
+            news.addView(text(err.isEmpty() ? "Загрузка новостей…" : "Ошибка: " + err, 15, FAINT, false));
+            return;
+        }
+        LinearLayout r = null;
+        int shown = Math.min(arr.length(), 8);
+        for (int i = 0; i < shown; i++) {
+            JSONObject o = arr.optJSONObject(i);
+            if (o == null) continue;
+            if (i % 2 == 0) {
+                r = row();
+                news.addView(r, margins(0, 0, 0, 16));
+            }
+            final String title = o.optString("title");
+            final String body = o.optString("text");
+            final long ms = o.optLong("ms");
+            LinearLayout c = card(v -> new AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
+                    .setTitle(title + (ms > 0 ? "  ·  " + hhmm(ms) : ""))
+                    .setMessage(body)
+                    .setPositiveButton("Закрыть", null)
+                    .show());
+            c.addView(text(title + (ms > 0 ? "  ·  " + hhmm(ms) : ""), 13, FAINT, true));
+            TextView t = text(body, 16, WHITE, false);
+            t.setMaxLines(3);
+            t.setEllipsize(TextUtils.TruncateAt.END);
+            c.addView(t, margins(0, 6, 0, 0));
+            r.addView(c, weight(1, 0, 0, i % 2 == 0 ? 16 : 0, 0));
+        }
+        if (r != null && r.getChildCount() == 1) r.addView(new View(this), weight(1, 0, 0, 0, 0));
     }
 
     private void renderDevices(SharedPreferences p) {
@@ -358,6 +408,8 @@ public final class DimActivity extends Activity {
         EditText token = field(box, "Токен alerts.in.ua (пусто — данные по области)", Store.ALERTS_TOKEN, false);
         EditText id = field(box, "Tuya Access ID / Client ID", Store.TUYA_ID, false);
         EditText secret = field(box, "Tuya Access Secret / Client Secret", Store.TUYA_SECRET, true);
+        EditText channels = field(box, "Telegram-каналы через запятую (пусто — " + Telegram.DEFAULT_CHANNELS + ")",
+                Store.TG_CHANNELS, false);
         new AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
                 .setTitle("Настройки")
                 .setView(box)
@@ -366,6 +418,8 @@ public final class DimActivity extends Activity {
                             .putString(Store.ALERTS_TOKEN, token.getText().toString().trim())
                             .putString(Store.TUYA_ID, id.getText().toString().trim())
                             .putString(Store.TUYA_SECRET, secret.getText().toString().trim())
+                            .putString(Store.TG_CHANNELS, channels.getText().toString().trim())
+                            .putLong(Store.TG_AT, 0)
                             .putLong(Store.ALERT_AT, 0)
                             .putLong(Store.TUYA_AT, 0)
                             .putString(Store.TUYA_DEVICES, "[]")

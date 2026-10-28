@@ -43,6 +43,12 @@ final class Store {
     static final String TUYA_AT = "tuya_at";
     static final String TUYA_ERROR = "tuya_error";
 
+    // Telegram: channels setting, feed JSON [{channel, title, text, ms, post}]
+    static final String TG_CHANNELS = "tg_channels";
+    static final String TG_FEED = "tg_feed";
+    static final String TG_AT = "tg_at";
+    static final String TG_ERROR = "tg_error";
+
     private Store() {}
 
     static SharedPreferences prefs(Context ctx) {
