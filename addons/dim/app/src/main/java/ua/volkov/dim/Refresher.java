@@ -29,6 +29,8 @@ final class Refresher {
         IO.execute(() -> {
             try {
                 if (refresh(app, force)) StatusProvider.notifyChanged(app);
+            } catch (Throwable t) {
+                // one bad source must never take the app (and Home's status line) down
             } finally {
                 busy = false;
             }
@@ -89,7 +91,7 @@ final class Refresher {
             try {
                 JSONArray feed = Telegram.feed(Telegram.channels(Store.str(ctx, Store.TG_CHANNELS)));
                 e.putString(Store.TG_FEED, feed.toString()).putString(Store.TG_ERROR, "");
-            } catch (Exception ex) {
+            } catch (Throwable ex) {
                 e.putString(Store.TG_ERROR, String.valueOf(ex.getMessage()));
             }
             e.putLong(Store.TG_AT, now);

@@ -18,10 +18,10 @@ import java.util.regex.Pattern;
 final class Telegram {
     static final String DEFAULT_CHANNELS = "war_monitor";
     /** Only posts about an immediate threat; everything else is dropped. Ukrainian and Russian stems. */
-    private static final Pattern URGENT = Pattern.compile("(?iU)(ракет|баліст|балист|шахед|бпла|мопед|\\bкаб(и|ы|ів|ов)?\\b|крилат|крылат|"
+    private static final Pattern URGENT = Pattern.compile("(ракет|баліст|балист|шахед|бпла|мопед|(^|[^а-яёіїєґ])каб(и|ы|ів|ов)?([^а-яёіїєґ]|$)|крилат|крылат|"
             + "вибух|взрыв|загроз|угроз|швидкісн|скоростн|пуск|зліт|взлет|взлёт|міг-31|миг-31|ту-95|ту-22|калібр|калибр|"
-            + "кинджал|кинжал|циркон|іскандер|искандер|укритт|укрыт|🚨|‼|❗)");
-    private static final Pattern ODESA = Pattern.compile("(?iU)(одес|одещ|одеськ|одесск)");
+            + "кинджал|кинжал|циркон|іскандер|искандер|укритт|укрыт|🚨|‼|❗)", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+    private static final Pattern ODESA = Pattern.compile("(одес|одещ|одеськ|одесск)", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
     static final long MAX_AGE_MS = 6 * 3600_000L;
     static final int KEEP = 40;
 
