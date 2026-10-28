@@ -170,10 +170,7 @@ final class Tuya {
         if (c.equals("pir")) return "pir".equals(String.valueOf(v)) ? "движение" : "тихо";
         if (c.equals("watersensor_state")) return "alarm".equals(String.valueOf(v)) ? "ПРОТЕЧКА" : "сухо";
         if (c.equals("smoke_sensor_status")) return "alarm".equals(String.valueOf(v)) ? "ДЫМ" : "ок";
-        if ((c.equals("switch") || c.equals("switch_1") || c.equals("switch_led") || c.equals("switch_led_1"))
-                && v instanceof Boolean) {
-            return (Boolean) v ? "включено" : "выключено";
-        }
+        // on/off is shown on its own line with the OK hint (DimActivity), not in the summary
         if (c.equals("cur_power") && v instanceof Number) {
             return String.format(Locale.ROOT, "%.0f Вт", ((Number) v).doubleValue() / 10.0);
         }
