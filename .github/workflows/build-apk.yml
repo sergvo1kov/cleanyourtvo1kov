@@ -8,6 +8,9 @@ on:
     paths: ["launcher/**", "addons/dim/**", ".github/workflows/build-apk.yml"]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -47,3 +50,13 @@ jobs:
           name: tv-apks
           path: out/*.apk
           retention-days: 30
+      # Fork-only: the same two APKs under fixed names, so the TV setup script can fetch them by URL.
+      - name: Publish as the "latest-build" release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp launcher/app/build/outputs/apk/release/app-release.apk out/tvhome.apk
+          cp addons/dim/app/build/outputs/apk/release/app-release.apk out/dim.apk
+          gh release delete latest-build -y --cleanup-tag -R "$GITHUB_REPOSITORY" || true
+          gh release create latest-build out/tvhome.apk out/dim.apk -R "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" --title "Latest build ${GITHUB_SHA::7}" --notes "Built from ${GITHUB_SHA}" --prerelease
