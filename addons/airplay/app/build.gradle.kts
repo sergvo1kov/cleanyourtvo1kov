@@ -82,6 +82,16 @@ android {
         }
     }
 
+    // Flick AirPlay: always the fork's fixed key (the same as the launchers), so every CI build installs over the last.
+    signingConfigs {
+        create("fork") {
+            storeFile = rootProject.file("../../launcher/ci-debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         debug {
             isDebuggable = true
@@ -93,7 +103,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")   // CI: the fork's fixed debug key
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("fork")
         }
     }
 
