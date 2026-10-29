@@ -1,0 +1,23 @@
+# Fork-only, one-off: removes the old Glass TV releases (glass-v*) and their tags.
+name: Remove Glass TV releases
+
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/cleanup-glass.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete glass-v* releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for t in $(gh release list -R "$GITHUB_REPOSITORY" --limit 200 --json tagName --jq '.[].tagName' | grep '^glass-v'); do
+            gh release delete "$t" -y --cleanup-tag -R "$GITHUB_REPOSITORY" && echo "removed $t"
+          done
