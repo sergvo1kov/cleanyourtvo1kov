@@ -1,4 +1,8 @@
-**Flick TV 2.7** — a home screen for Android TV / Google TV by Serhii Volkov (@sergvo1kov), built on CleanYourTV.
+**Flick TV 2.8** — a home screen for Android TV / Google TV by Serhii Volkov (@sergvo1kov), built on CleanYourTV.
+
+**New in 2.8: Flick TV Glass**
+- A second, tvOS-style home screen (Flick TV Glass, its own app and release) reads Flick TV's films, alerts, weather and Smart Life through a signature-protected DataProvider, so keys are entered once.
+- The Home button opens whichever of the two was chosen; each has a switch to the other.
 
 **New in 2.7: faster**
 - The film row is parsed once and kept, instead of being rebuilt from storage every second by the clock.
@@ -25,5 +29,5 @@
 - Settings sheet, three-row apps page, alerts, weather, Smart Life, TorrServe and Now playing from 2.0.
 - `ВЕРНУТЬ-GOOGLE-TV.bat` in the installer zip takes a TV back to the stock Google TV home and removes Flick TV.
 
-Install: download `Flick-TV-2.7.zip`, unzip on a Windows PC with Android platform-tools, run `УСТАНОВИТЬ.bat` (details in `ИНСТРУКЦИЯ.txt`).
+Install: download `Flick-TV-2.8.zip`, unzip on a Windows PC with Android platform-tools, run `УСТАНОВИТЬ.bat` (details in `ИНСТРУКЦИЯ.txt`).
 Tested on an Ergo 55MQ95 Gaming (Google TV, MediaTek). Package `ua.volkov.dim`, Android 8+.

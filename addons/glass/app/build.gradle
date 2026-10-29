@@ -1,0 +1,48 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'ua.volkov.glass'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'ua.volkov.glass'
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    // Fork: one fixed key for every build, so a new APK installs over the last one on the TV.
+    signingConfigs {
+        fork {
+            storeFile rootProject.file('../../launcher/ci-debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+            // Sideloaded like the launcher, signed with the fork's fixed debug key (see the build workflow).
+            signingConfig signingConfigs.fork
+        }
+    }
+
+    // Lint runs on every build; its report is uploaded with the APKs. It does not stop the build.
+    lint {
+        abortOnError false
+        textReport true
+        textOutput file("$buildDir/reports/lint-results.txt")
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

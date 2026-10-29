@@ -5,7 +5,7 @@ name: Build launcher APK
 on:
   push:
     branches: [main]
-    paths: ["launcher/**", "addons/dim/**", ".github/workflows/build-apk.yml"]
+    paths: ["launcher/**", "addons/dim/**", "addons/glass/**", ".github/workflows/build-apk.yml"]
   workflow_dispatch:
 
 permissions:
@@ -39,6 +39,11 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew --no-daemon lintRelease assembleRelease
+      - name: Build Flick TV Glass
+        working-directory: addons/glass
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRelease
       - name: Lint summary as an annotation
         run: |
           f=addons/dim/app/build/reports/lint-results.txt
@@ -68,8 +73,9 @@ jobs:
         run: |
           cp launcher/app/build/outputs/apk/release/app-release.apk out/tvhome.apk
           cp addons/dim/app/build/outputs/apk/release/app-release.apk out/dim.apk
+          cp addons/glass/app/build/outputs/apk/release/app-release.apk out/glass.apk
           gh release delete latest-build -y --cleanup-tag -R "$GITHUB_REPOSITORY" || true
-          gh release create latest-build out/tvhome.apk out/dim.apk -R "$GITHUB_REPOSITORY" \
+          gh release create latest-build out/tvhome.apk out/dim.apk out/glass.apk -R "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" --title "Latest build ${GITHUB_SHA::7}" --notes "Built from ${GITHUB_SHA}" --prerelease
       # Fork-only: a versioned Flick TV release (APK + installer zip), once per versionName.
       - name: Publish the Flick TV version release
@@ -91,4 +97,18 @@ jobs:
           else
             gh release create "v$ver" "rel/Flick-TV-$ver.zip" "rel/Flick-TV-$ver/flick-tv-$ver.apk" -R "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" --title "Flick TV $ver" --notes-file addons/dim/RELEASE_NOTES.md
+          fi
+      # Fork-only: Flick TV Glass, its own release per versionName (glass-v1.0, ...).
+      - name: Publish the Flick TV Glass version release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ver=$(sed -n 's/.*versionName "\(.*\)".*/\1/p' addons/glass/app/build.gradle)
+          [ -n "$ver" ] || exit 0
+          cp addons/glass/app/build/outputs/apk/release/app-release.apk "flick-tv-glass-$ver.apk"
+          if gh release view "glass-v$ver" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "glass-v$ver" "flick-tv-glass-$ver.apk" --clobber -R "$GITHUB_REPOSITORY"
+          else
+            gh release create "glass-v$ver" "flick-tv-glass-$ver.apk" -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+              --title "Flick TV Glass $ver" --notes "Flick TV Glass $ver: a tvOS-style home screen beside Flick TV (needs Flick TV 2.8+). By Serhii Volkov (@sergvo1kov)."
           fi

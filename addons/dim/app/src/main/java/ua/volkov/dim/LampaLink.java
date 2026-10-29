@@ -163,6 +163,57 @@ final class LampaLink {
         }
     }
 
+    /**
+     * What the Glass stage shows about a film: {tmdb, media, overview, vote, genres, year, backdrop}, from
+     * TMDB in Russian with the person's key. Cached. Blocking. Null without a key or a match.
+     */
+    static JSONObject details(Context ctx, JSONObject film) {
+        String key = Store.str(ctx, Store.TMDB_KEY);
+        if (key.isEmpty()) return null;
+        String id = film.optString("tmdb"), media = film.optString("media");
+        if (id.isEmpty()) {
+            String[] f = find(ctx, film.optString("title"), film.optString("year"), film.optString("type"));
+            if (f == null) return null;
+            id = f[0];
+            media = f[1];
+        }
+        String ckey = media + "/" + id;
+        try {
+            JSONObject cache = new JSONObject(Store.prefs(ctx).getString("details", "{}"));
+            JSONObject hit = cache.optJSONObject(ckey);
+            if (hit != null) return hit;
+            boolean v3 = key.matches("[0-9a-fA-F]{32}");
+            java.util.Map<String, String> h = new java.util.HashMap<>();
+            if (!v3) h.put("Authorization", "Bearer " + key);
+            Http.Response r = Http.get("https://api.themoviedb.org/3/" + media + "/" + id + "?language=ru-RU"
+                    + (v3 ? "&api_key=" + key : ""), h, 10_000);
+            if (r.code != 200) return null;
+            JSONObject o = new JSONObject(r.body);
+            StringBuilder g = new StringBuilder();
+            org.json.JSONArray genres = o.optJSONArray("genres");
+            for (int i = 0; genres != null && i < genres.length() && i < 2; i++) {
+                if (g.length() > 0) g.append(", ");
+                String name = genres.getJSONObject(i).optString("name");
+                g.append(name.isEmpty() ? "" : Character.toUpperCase(name.charAt(0)) + name.substring(1));
+            }
+            String date = o.optString("movie".equals(media) ? "release_date" : "first_air_date");
+            String back = o.optString("backdrop_path", "");
+            JSONObject d = new JSONObject()
+                    .put("tmdb", id).put("media", media)
+                    .put("overview", o.optString("overview"))
+                    .put("vote", Math.round(o.optDouble("vote_average", 0) * 10) / 10.0)
+                    .put("genres", g.toString())
+                    .put("year", date.length() >= 4 ? date.substring(0, 4) : "")
+                    .put("backdrop", back.isEmpty() || "null".equals(back) ? "" : "https://image.tmdb.org/t/p/w1280" + back);
+            if (cache.length() > 200) cache = new JSONObject();
+            cache.put(ckey, d);
+            Store.prefs(ctx).edit().putString("details", cache.toString()).apply();
+            return d;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     /** The intent that opens that film's card in Lampa. */
     static Intent cardIntent(String[] found) {
         Intent i = new Intent(Intent.ACTION_VIEW,

@@ -34,11 +34,14 @@ final class AppSettings {
     static void visual(Activity a, Runnable onChanged) {
         boolean light = light(a);
         boolean art = backdropOn(a);
+        boolean glass = new Intent().setClassName(DataProvider.GLASS, DataProvider.GLASS_HOME)
+                .resolveActivity(a.getPackageManager()) != null;
         String[] items = {
                 light ? "Тема: светлая  →  тёмная" : "Тема: тёмная  →  светлая",
                 art ? "Фон с постером фильма: включён  →  выключить" : "Фон с постером фильма: выключен  →  включить",
                 "Панель Google TV (Google Home)",
-                "Настройки телевизора"};
+                "Настройки телевизора",
+                glass ? "Главный экран: Flick TV  →  Flick TV Glass" : "Flick TV Glass не установлен"};
         new AlertDialog.Builder(a, dialogTheme(a))
                 .setTitle("Flick TV " + version(a) + "  ·  Serhii Volkov (@sergvo1kov)")
                 .setItems(items, (d, which) -> {
@@ -52,8 +55,15 @@ final class AppSettings {
                             onChanged.run();
                             break;
                         case 2: googlePanel(a); break;
-                        default:
+                        case 3:
                             a.startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                            break;
+                        default:
+                            if (!glass) break;
+                            // Home now opens Glass; Glass has the button to come back
+                            Store.prefs(a).edit().putString(Store.HOME_TARGET, "glass").apply();
+                            a.startActivity(new Intent().setClassName(DataProvider.GLASS, DataProvider.GLASS_HOME)
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
                     }
                 })
                 .show();

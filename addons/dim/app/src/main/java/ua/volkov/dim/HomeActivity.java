@@ -267,6 +267,10 @@ public final class HomeActivity extends Activity {
         String nick = getIntent() == null ? null : getIntent().getStringExtra("must_nick");
         if (nick != null) Store.prefs(this).edit().putString(Store.MUST_NICK, nick.trim()).putLong(Store.MUST_AT, 0).apply();
         Images.init(this);
+        if (forwardHome(getIntent())) {
+            finish();
+            return;
+        }
         loadFavs();
         setContentView(build());
         askTvListings();
@@ -319,6 +323,7 @@ public final class HomeActivity extends Activity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+        if (forwardHome(intent)) return;
         // Home pressed while home: back to the first page and the first favourite
         showApps(false);
         if (favRow != null && favRow.getChildCount() > 0) favRow.getChildAt(0).requestFocus();
@@ -1054,7 +1059,10 @@ public final class HomeActivity extends Activity {
     private JSONArray feedCache;
     private final SharedPreferences.OnSharedPreferenceChangeListener feedWatch = (sp, key) -> {
         if (Store.MUST_LIST.equals(key) || Store.MUST_WANT.equals(key) || Store.FRESH_LIST.equals(key)
-                || Store.TMDB_KEY.equals(key)) feedCache = null;
+                || Store.TMDB_KEY.equals(key)) {
+            feedCache = null;
+            heroMode = "";   // rebuild the row with the new list
+        }
     };
 
     /**
@@ -1073,22 +1081,7 @@ public final class HomeActivity extends Activity {
             }
         }
         if (feedCache != null) return feedCache;
-        JSONArray must;
-        try {
-            must = new JSONArray(Store.prefs(this).getString(Store.MUST_LIST, "[]"));
-        } catch (Exception e) {
-            must = new JSONArray();
-        }
-        JSONArray fresh, want;
-        try {
-            fresh = Store.str(this, Store.TMDB_KEY).isEmpty() ? new JSONArray()
-                    : new JSONArray(Store.prefs(this).getString(Store.FRESH_LIST, "[]"));
-            want = new JSONArray(Store.prefs(this).getString(Store.MUST_WANT, "[]"));
-        } catch (Exception e) {
-            fresh = new JSONArray();
-            want = new JSONArray();
-        }
-        feedCache = Fresh.mix(l, rotate(want, feedSeed), rotate(must, feedSeed * 3), rotate(fresh, feedSeed * 2));
+        feedCache = Feed.build(this, l, feedSeed);
         return feedCache;
     }
 
@@ -1108,71 +1101,18 @@ public final class HomeActivity extends Activity {
         heroMode = "";
     }
 
-    private static JSONArray rotate(JSONArray a, int by) {
-        int n = a.length();
-        if (n < 2 || by % n == 0) return a;
-        JSONArray out = new JSONArray();
-        for (int i = 0; i < n; i++) out.put(a.opt((i + by) % n));
-        return out;
-    }
 
     private long freshTried;
 
     /** Fresh TMDB titles for the row, every three hours, only with a TMDB key. */
     private void refreshFresh(boolean force) {
-        if (Store.str(this, Store.TMDB_KEY).isEmpty()) return;
-        long now = System.currentTimeMillis();
-        if (!force && (now - Store.prefs(this).getLong(Store.FRESH_AT, 0) < 3 * 3600_000L || now - freshTried < 10 * 60_000L)) return;
-        freshTried = now;
-        Context app = getApplicationContext();
-        io.execute(() -> {
-            try {
-                java.util.Set<String> skip = new java.util.HashSet<>();
-                for (String k : new String[]{Store.MUST_LIST, Store.MUST_WANT}) {
-                    JSONArray must = new JSONArray(Store.prefs(app).getString(k, "[]"));
-                    for (int i = 0; i < must.length(); i++) skip.add(Fresh.norm(must.optJSONObject(i).optString("title")));
-                }
-                JSONArray list = Fresh.load(app, skip);
-                if (list.length() > 0) {
-                    Store.prefs(app).edit().putString(Store.FRESH_LIST, list.toString()).putLong(Store.FRESH_AT, now).apply();
-                    main.post(() -> heroMode = "");
-                }
-            } catch (Exception ignored) {
-                // a wrong key or no network: the row keeps Must only
-            }
-        });
+        Feed.refreshFresh(this, force);
+        freshTried = System.currentTimeMillis();
     }
 
     private void refreshMust(boolean force) {
-        String nick = Store.str(this, Store.MUST_NICK);
-        if (nick.isEmpty()) return;
-        long now = System.currentTimeMillis();
-        if (!Store.prefs(this).contains(Store.MUST_WANT)) force = true;   // first run of 2.1: fetch the Want list
-        if (!force && (now - Store.prefs(this).getLong(Store.MUST_AT, 0) < 30 * 60_000L || now - mustTried < 5 * 60_000L)) return;
-        mustTried = now;
-        Context app = getApplicationContext();
-        io.execute(() -> {
-            try {
-                JSONArray list = Must.similar(app, nick);
-                JSONArray want = new JSONArray();
-                try {
-                    want = Must.want(app, nick);
-                    for (int i = 0; i < want.length(); i++) want.getJSONObject(i).put("label", "Хочу посмотреть");
-                } catch (Exception ignored) {
-                    // the recommendations still show
-                }
-                if (list.length() > 0 || want.length() > 0) {
-                    Store.prefs(app).edit().putString(Store.MUST_LIST, list.toString())
-                            .putString(Store.MUST_WANT, want.toString()).putLong(Store.MUST_AT, now).apply();
-                    for (JSONArray a : new JSONArray[]{want, list}) {
-                        for (int i = 0; i < Math.min(12, a.length()); i++) Images.prefetch(a.optJSONObject(i).optString("poster"));
-                    }
-                    main.post(() -> heroMode = "");   // rebuild with the new posters
-                }
-            } catch (Exception ignored) {
-                // must-debug.txt has the details
-            }
-        });
+        Feed.refreshMust(this, force);
+        mustTried = System.currentTimeMillis();
     }
 
     /** A Lampa card carries its own intent: it opens that exact film in Lampa. */
@@ -1905,6 +1845,19 @@ public final class HomeActivity extends Activity {
     public void onRequestPermissionsResult(int code, String[] perms, int[] results) {
         super.onRequestPermissionsResult(code, perms, results);
         io.execute(() -> lampa = LampaCards.read(getApplicationContext()));
+    }
+
+    /** Home pressed while Flick TV Glass is the chosen home screen: open it instead. */
+    private boolean forwardHome(Intent i) {
+        if (i == null || !i.hasCategory(Intent.CATEGORY_HOME)) return false;
+        Intent g = HomeRedirectService.homeIntent(this);
+        if (g.getComponent() == null || getPackageName().equals(g.getComponent().getPackageName())) return false;
+        try {
+            startActivity(g.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            return true;
+        } catch (RuntimeException e) {
+            return false;
+        }
     }
 
     private QuickPanel panel;
