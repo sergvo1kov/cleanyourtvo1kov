@@ -87,7 +87,7 @@ final class Ui {
         v.setOnFocusChangeListener((view, has) -> {
             g.setColor(has ? 0xF2FFFFFF : PLATE);
             tint(view, has ? GRAPHITE : WHITE);
-            view.animate().scaleX(has ? 1.03f : 1f).scaleY(has ? 1.03f : 1f).setDuration(160)
+            view.animate().scaleX(has ? 1.025f : 1f).scaleY(has ? 1.025f : 1f).setDuration(160)
                     .setInterpolator(new DecelerateInterpolator()).start();
         });
     }
