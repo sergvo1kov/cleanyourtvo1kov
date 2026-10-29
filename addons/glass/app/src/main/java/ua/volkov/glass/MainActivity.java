@@ -312,15 +312,19 @@ public final class MainActivity extends Activity {
         wcol.setGravity(Gravity.CENTER);
         wGlyph = ui.text("☁", 13, Ui.WHITE, false);
         wTemp = ui.text("", 9.5f, Ui.WHITE, true);
-        wcol.addView(wGlyph);
-        wcol.addView(wTemp, ui.lp(-2, -2, 0, 1, 0, 0));
+        // full width and centred text: an emoji's measured box is narrower than what it draws
+        wGlyph.setGravity(Gravity.CENTER);
+        wGlyph.setIncludeFontPadding(true);
+        wTemp.setGravity(Gravity.CENTER);
+        wcol.addView(wGlyph, ui.lp(-1, -2, 0, 0, 0, 0));
+        wcol.addView(wTemp, ui.lp(-1, -2, 0, 0, 0, 0));
         weatherCap.addView(wcol, new FrameLayout.LayoutParams(-1, -1, Gravity.CENTER));
         alertDot = new View(this);
         GradientDrawable dg = new GradientDrawable();
         dg.setShape(GradientDrawable.OVAL);
         dg.setColor(0x66FFFFFF);
         alertDot.setBackground(dg);
-        weatherCap.addView(alertDot, ui.flp(5, 5, Gravity.TOP | Gravity.END, 0, 7, 7, 0));
+        weatherCap.addView(alertDot, ui.flp(5, 5, Gravity.TOP | Gravity.END, 0, 9, 9, 0));
         capsule(weatherCap, 25, v -> weather.open());
         root.addView(weatherCap, ui.flp(50, 50, Gravity.START | Gravity.TOP, 52, 28, 0, 0));
 
