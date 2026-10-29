@@ -59,6 +59,7 @@ public final class MainActivity extends Activity {
     private FrameLayout root;
     private final ImageView[] art = new ImageView[2];
     private ImageView soft;
+    private final View[] shades = new View[3];
     private int front;
     private View dim;
     private LinearLayout info;
@@ -235,14 +236,17 @@ public final class MainActivity extends Activity {
         root.addView(soft, new FrameLayout.LayoutParams(-1, -1));
         // shades: the text side and the dock side stay readable over any picture
         View left = new View(this);
+        shades[0] = left;
         left.setBackground(new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
                 new int[]{0xD9000000, 0x80000000, 0x10000000, 0x00000000}));
         root.addView(left, new FrameLayout.LayoutParams(-1, -1));
         View bottom = new View(this);
+        shades[1] = bottom;
         bottom.setBackground(new GradientDrawable(GradientDrawable.Orientation.BOTTOM_TOP,
                 new int[]{0xE6000000, 0x66000000, 0x00000000, 0x00000000}));
         root.addView(bottom, new FrameLayout.LayoutParams(-1, -1));
         View top = new View(this);
+        shades[2] = top;
         top.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
                 new int[]{0x99000000, 0x00000000, 0x00000000, 0x00000000}));
         root.addView(top, new FrameLayout.LayoutParams(-1, -1));
@@ -499,7 +503,22 @@ public final class MainActivity extends Activity {
     private void setArt(String url) {
         if (url == null || url.isEmpty() || url.equals(shownArt)) return;
         shownArt = url;
-        Images.get(url, b -> {
+        // the blurred copy is made off the main thread: on the TV it costs a frame or two
+        Images.get(url, b0 -> io.execute(() -> {
+            android.graphics.Bitmap sb = b0 == null ? null : Ui.blur(b0, 40);
+            android.graphics.Bitmap apps = b0 == null ? null : Ui.blur(b0, ui.blurWidth());
+            main.post(() -> {
+                if (b0 != null) {
+                    softFor = b0;
+                    softBlur = apps;
+                }
+                artReady(url, b0, sb);
+            });
+        }));
+    }
+
+    private void artReady(String url, android.graphics.Bitmap b, android.graphics.Bitmap blurred) {
+        {
             if (!url.equals(shownArt)) return;
             if (b == null) {   // the picture did not load: never leave the blur over the screen
                 soft.animate().cancel();
@@ -512,16 +531,17 @@ public final class MainActivity extends Activity {
             boolean first = out.getAlpha() < 0.05f;
             soft.animate().cancel();
             in.animate().cancel();
-            soft.setImageBitmap(Ui.blur(b, 40));
+            soft.setImageBitmap(blurred);
             Runnable reveal = () -> {
                 if (!url.equals(shownArt)) return;   // a newer picture is on its way
                 in.setImageBitmap(b);
                 currentArt = b;
                 in.setAlpha(1f);
-                in.setScaleX(1.05f);
-                in.setScaleY(1.05f);
+                in.setScaleX(1.03f);
+                in.setScaleY(1.03f);
                 out.setAlpha(0f);
-                in.animate().scaleX(1f).scaleY(1f).setDuration(9000).setInterpolator(new DecelerateInterpolator()).start();
+                // a short settle, not a long zoom: a full-screen picture moving for seconds keeps the TV's GPU busy
+                in.animate().scaleX(1f).scaleY(1f).setDuration(1400).setInterpolator(new DecelerateInterpolator()).start();
                 soft.animate().alpha(0f).setDuration(600).setInterpolator(new DecelerateInterpolator()).start();
             };
             if (first) {
@@ -530,7 +550,7 @@ public final class MainActivity extends Activity {
             } else {
                 soft.animate().alpha(1f).setDuration(260).withEndAction(reveal).start();
             }
-        });
+        }
     }
 
     /** {badge, colour (hex ARGB)} — the same five reasons as on Flick TV's row. */
@@ -762,7 +782,7 @@ public final class MainActivity extends Activity {
         if (v instanceof FrameLayout) ((FrameLayout) v).setForeground(rim);
         v.setOnFocusChangeListener((view, has) -> {
             rim.setStroke(ui.px(2), has ? 0xE6FFFFFF : 0);
-            view.animate().scaleX(has ? 1.08f : 1f).scaleY(has ? 1.08f : 1f).translationZ(has ? ui.px(10) : 0)
+            view.animate().scaleX(has ? 1.08f : 1f).scaleY(has ? 1.08f : 1f)
                     .setDuration(180).setInterpolator(new DecelerateInterpolator()).start();
             if (label != null) label.animate().alpha(has ? 1f : 0f).setDuration(180).start();
             if (has && label != null) gridFollow(view);
@@ -787,7 +807,9 @@ public final class MainActivity extends Activity {
                     softBlur = Ui.blur(currentArt, ui.blurWidth());
                 }
                 soft.setImageBitmap(softBlur);
-                soft.animate().alpha(1f).setDuration(380).start();
+                // once the frosted copy covers the screen, the layers under it stop being drawn: on a TV GPU
+                // every full-screen layer costs frames
+                soft.animate().alpha(1f).setDuration(380).withEndAction(() -> stageLayers(!appsShown)).start();
             }
             dim.animate().alpha(ui.scrim()).setDuration(300).start();
             FrameLayout.LayoutParams wl = (FrameLayout.LayoutParams) appsWrap.getLayoutParams();
@@ -802,6 +824,7 @@ public final class MainActivity extends Activity {
                 if (appsGrid.getChildCount() > 0) ((ViewGroup) appsGrid.getChildAt(0)).getChildAt(0).requestFocus();
             }, 120);
         } else {
+            stageLayers(true);
             dockBand.animate().translationY(0f).setDuration(320).setInterpolator(ease).withLayer().start();
             info.animate().alpha(1f).setDuration(300).start();
             dots.animate().alpha(1f).setDuration(300).start();
@@ -828,6 +851,12 @@ public final class MainActivity extends Activity {
         gridScroll.setDuration(340);
         gridScroll.setInterpolator(new DecelerateInterpolator(1.6f));
         gridScroll.start();
+    }
+
+    private void stageLayers(boolean on) {
+        int v = on ? View.VISIBLE : View.INVISIBLE;
+        for (ImageView i : art) if (i != null && (on || i.getVisibility() == View.VISIBLE)) i.setVisibility(v);
+        for (View s : shades) if (s != null) s.setVisibility(v);
     }
 
     /** Rows near the top of the apps page fade as they scroll towards the dock. */
