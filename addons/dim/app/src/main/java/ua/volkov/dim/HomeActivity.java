@@ -300,6 +300,8 @@ public final class HomeActivity extends Activity {
         // Home pressed while home: back to the first page and the first favourite
         showApps(false);
         if (favRow != null && favRow.getChildCount() > 0) favRow.getChildAt(0).requestFocus();
+        // over ADB: am start -n ua.volkov.dim/.HomeActivity --ez panel true
+        if (intent != null && intent.getBooleanExtra("panel", false)) main.postDelayed(this::openPanel, 300);
     }
 
     @Override
@@ -1412,7 +1414,7 @@ public final class HomeActivity extends Activity {
     private void buildQuick() {
         boolean hadFocus = quickRow.findFocus() != null;
         int focusAt = -1;
-        if (hadFocus) for (int i = 0; i < tiles.size(); i++) if (tiles.get(i).view.hasFocus()) focusAt = i;
+        if (hadFocus) for (int i = 0; i < tiles.size(); i++) if (tiles.get(i).view != null && tiles.get(i).view.hasFocus()) focusAt = i;
         quickRow.removeAllViews();
         List<String> specs = tiles.isEmpty() ? loadQuick() : null;
         if (specs != null) for (String sp : specs) tiles.add(new Tile(sp));
