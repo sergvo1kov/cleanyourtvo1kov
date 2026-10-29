@@ -1,4 +1,4 @@
-FLICK TV 2.0
+FLICK TV
 Главный экран для Android TV / Google TV
 Автор: Serhii Volkov (@sergvo1kov) · github.com/sergvo1kov/cleanyourtvo1kov
 

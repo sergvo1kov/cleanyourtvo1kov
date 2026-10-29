@@ -1,4 +1,4 @@
-# Flick TV 2.0
+# Flick TV 2.1
 
 A home screen for Android TV / Google TV, made by **Serhii Volkov ([@sergvo1kov](https://github.com/sergvo1kov))**
 on top of [CleanYourTV](https://github.com/Gathin23/cleanyourtv). Russian UI. Package `ua.volkov.dim`.

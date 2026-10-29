@@ -1,9 +1,11 @@
-**Flick TV 2.0** — a home screen for Android TV / Google TV by Serhii Volkov (@sergvo1kov), built on CleanYourTV.
+**Flick TV 2.1** — a home screen for Android TV / Google TV by Serhii Volkov (@sergvo1kov), built on CleanYourTV.
 
-- For you: Must recommendations with posters; one press opens the film in Lampa (with a free TMDB key) or Lampa's search. The headline changes every 5–10 minutes.
-- Now playing, air-raid alerts (Odeskyi raion), weather, internet and speed test, TorrServe, Smart Life / Tuya.
-- Settings sheet: network, Bluetooth, picture mode, standby, volume, screensaver, back to the stock Google TV home.
-- Editable favourites and bottom row, three-row apps page, smooth Home / Apps switch, dark and light themes.
+New in 2.1:
+- Fresh films and trending shows from TMDB (your own free key) mixed into "For you", with a badge; one press opens them in Lampa.
+- Lampa's own cards (Continue watching, its recommendation channels) come first when Lampa publishes them: Flick TV asks for READ_TV_LISTINGS and sends Lampa INITIALIZE_PROGRAMS, as the stock launcher does.
+- The Control Center's Settings has the same Flick TV list as Home (theme, Must, Lampa key, Google TV panel).
 
-Install: download `Flick-TV-2.0.zip`, unzip it on a Windows PC with Android platform-tools, run `УСТАНОВИТЬ.bat` (details in `ИНСТРУКЦИЯ.txt`).
+From 2.0: settings sheet (network, Bluetooth, picture mode, standby, volume, screensaver, stock home), three-row apps page, Must recommendations, alerts, weather, Smart Life, TorrServe, Now playing.
+
+Install: download `Flick-TV-2.1.zip`, unzip on a Windows PC with Android platform-tools, run `УСТАНОВИТЬ.bat` (details in `ИНСТРУКЦИЯ.txt`).
 Tested on an Ergo 55MQ95 Gaming (Google TV, MediaTek). Package `ua.volkov.dim`, Android 8+.

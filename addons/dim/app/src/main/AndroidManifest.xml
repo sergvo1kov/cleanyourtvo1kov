@@ -18,6 +18,8 @@
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <!-- To show the cards TV apps (Lampa) publish to Android TV's home screen. -->
     <uses-permission android:name="com.android.providers.tv.permission.READ_EPG_DATA" />
+    <!-- Android 11+: reading other apps' home screen cards (Lampa's channels and Continue watching). -->
+    <uses-permission android:name="android.permission.READ_TV_LISTINGS" />
 
     <application
         android:allowBackup="false"

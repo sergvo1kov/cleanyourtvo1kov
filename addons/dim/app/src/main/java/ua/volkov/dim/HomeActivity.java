@@ -238,6 +238,7 @@ public final class HomeActivity extends Activity {
             checkTorrServe();
             readBluetooth();
             refreshMust(false);
+            refreshFresh(false);
             io.execute(() -> lampa = LampaCards.read(getApplicationContext()));
             renderQuick();
             main.postDelayed(this, 30_000);
@@ -259,6 +260,8 @@ public final class HomeActivity extends Activity {
         if (nick != null) Store.prefs(this).edit().putString(Store.MUST_NICK, nick.trim()).putLong(Store.MUST_AT, 0).apply();
         loadFavs();
         setContentView(build());
+        askTvListings();
+        io.execute(() -> LampaCards.initialize(getApplicationContext()));
         observer = new ContentObserver(main) {
             @Override
             public void onChange(boolean selfChange) {
@@ -272,6 +275,10 @@ public final class HomeActivity extends Activity {
     protected void onResume() {
         super.onResume();
         HomeRedirectService.allowStock = false;   // our Home is back: the stock one redirects again
+        if (AppSettings.light(this) != light) {   // the theme was changed in the Control Center
+            recreate();
+            return;
+        }
         getContentResolver().registerContentObserver(StatusProvider.URI, false, observer);
         Refresher.kick(this, false);
         main.post(tick);
@@ -926,6 +933,8 @@ public final class HomeActivity extends Activity {
             final String lampaIntent = o.optString("intent");
             final String year = o.optString("year");
             final String type = o.optString("type");
+            final String tmdb = o.optString("tmdb"), media = o.optString("media");
+            final String badge = "lampa".equals(o.optString("src")) ? "Lampa" : o.optString("label");
             LinearLayout card = new LinearLayout(this);
             card.setOrientation(LinearLayout.VERTICAL);
             FrameLayout frame = new FrameLayout(this);
@@ -933,6 +942,7 @@ public final class HomeActivity extends Activity {
             frame.setClickable(true);
             frame.setOnClickListener(v -> {
                 if (!lampaIntent.isEmpty()) openIntentUri(lampaIntent, title);
+                else if (!tmdb.isEmpty()) openTmdb(tmdb, media, title);
                 else openCard(title, year, type);
             });
             // the title shows until the poster arrives and covers it
@@ -946,6 +956,14 @@ public final class HomeActivity extends Activity {
             clip(img, 9);
             frame.addView(img, new FrameLayout.LayoutParams(-1, -1));
             Images.load(o.optString("poster"), img);
+            if (!badge.isEmpty()) {
+                TextView b = text(badge, 7.5f, 0xFFFFFFFF, true);
+                b.setPadding(px(5), px(1.5f), px(5), px(2));
+                b.setBackground(round("Lampa".equals(badge) ? 0xE62E7DFF : 0xE6E5484D, 5, 0));
+                FrameLayout.LayoutParams bl = new FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.START);
+                bl.setMargins(px(5), px(5), 0, 0);
+                frame.addView(b, bl);
+            }
             focusRing(frame, 9);
             card.addView(frame, new LinearLayout.LayoutParams(px(84), px(124)));
             TextView t = text(title, 9, txt, false);
@@ -977,7 +995,38 @@ public final class HomeActivity extends Activity {
             lampaCount = l.length();
             heroMode = "";
         }
-        return LampaCards.mix(l, must);
+        JSONArray fresh;
+        try {
+            fresh = new JSONArray(Store.prefs(this).getString(Store.FRESH_LIST, "[]"));
+        } catch (Exception e) {
+            fresh = new JSONArray();
+        }
+        return Fresh.mix(l, must, fresh);
+    }
+
+    private long freshTried;
+
+    /** Fresh TMDB titles for the row, every six hours, only with a TMDB key. */
+    private void refreshFresh(boolean force) {
+        if (Store.str(this, Store.TMDB_KEY).isEmpty()) return;
+        long now = System.currentTimeMillis();
+        if (!force && (now - Store.prefs(this).getLong(Store.FRESH_AT, 0) < 6 * 3600_000L || now - freshTried < 10 * 60_000L)) return;
+        freshTried = now;
+        Context app = getApplicationContext();
+        io.execute(() -> {
+            try {
+                java.util.Set<String> skip = new java.util.HashSet<>();
+                JSONArray must = new JSONArray(Store.prefs(app).getString(Store.MUST_LIST, "[]"));
+                for (int i = 0; i < must.length(); i++) skip.add(Fresh.norm(must.optJSONObject(i).optString("title")));
+                JSONArray list = Fresh.load(app, skip);
+                if (list.length() > 0) {
+                    Store.prefs(app).edit().putString(Store.FRESH_LIST, list.toString()).putLong(Store.FRESH_AT, now).apply();
+                    main.post(() -> heroMode = "");
+                }
+            } catch (Exception ignored) {
+                // a wrong key or no network: the row keeps Must only
+            }
+        });
     }
 
     private void refreshMust(boolean force) {
@@ -1008,6 +1057,19 @@ public final class HomeActivity extends Activity {
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(i);
         } catch (Exception e) {
+            openInLampa(title);
+        }
+    }
+
+    /** A fresh title already has its TMDB id: straight to its card in Lampa. */
+    private void openTmdb(String id, String media, String title) {
+        if (!LampaLink.installed(this)) {
+            search(title);
+            return;
+        }
+        try {
+            startActivity(LampaLink.cardIntent(new String[]{id, media}));
+        } catch (ActivityNotFoundException e) {
             openInLampa(title);
         }
     }
@@ -1694,6 +1756,25 @@ public final class HomeActivity extends Activity {
 
     // ------------------------------------------------------------------ settings
 
+    /** Lampa's cards need READ_TV_LISTINGS on Android 11+; the TV asks once. */
+    private void askTvListings() {
+        String perm = "android.permission.READ_TV_LISTINGS";
+        if (android.os.Build.VERSION.SDK_INT < 30 || checkSelfPermission(perm) == PackageManager.PERMISSION_GRANTED) return;
+        if (Store.prefs(this).getBoolean("asked_tv_listings", false)) return;
+        Store.prefs(this).edit().putBoolean("asked_tv_listings", true).apply();
+        try {
+            requestPermissions(new String[]{perm}, 7);
+        } catch (RuntimeException ignored) {
+            // granted over ADB instead (install.ps1)
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int code, String[] perms, int[] results) {
+        super.onRequestPermissionsResult(code, perms, results);
+        io.execute(() -> lampa = LampaCards.read(getApplicationContext()));
+    }
+
     private QuickPanel panel;
     private FrameLayout rootView;
     private LinearLayout contentView;
@@ -1716,84 +1797,23 @@ public final class HomeActivity extends Activity {
         panel.open();
     }
 
-    private String versionName() {
-        try {
-            return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
-        } catch (PackageManager.NameNotFoundException e) {
-            return "";
-        }
-    }
-
     private void openSettings() {
-        String[] items = {
-                light ? "Тема: светлая  →  тёмная" : "Тема: тёмная  →  светлая",
-                "Must: " + (Store.str(this, Store.MUST_NICK).isEmpty() ? "указать ник" : "@" + Store.str(this, Store.MUST_NICK)),
-                "Тревоги, Smart Life, Telegram",
-                "Lampa: " + (Store.str(this, Store.TMDB_KEY).isEmpty() ? "ключ TMDB для открытия в один клик" : "ключ TMDB указан ✓"),
-                "Панель Google TV (Google Home)",
-                "Настройки телевизора"};
-        new AlertDialog.Builder(this, dialogTheme())
-                .setTitle("Flick TV " + versionName() + "  ·  Serhii Volkov (@sergvo1kov)")
-                .setItems(items, (d, which) -> {
-                    switch (which) {
-                        case 0:
-                            Store.prefs(this).edit().putString(Store.THEME, light ? "dark" : "light").apply();
-                            recreate();
-                            break;
-                        case 1: askMust(); break;
-                        case 2: startActivity(new Intent(this, DimActivity.class)); break;
-                        case 3: askTmdb(); break;
-                        case 4: openGoogleTvPanel(); break;
-                        default:
-                            startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-                    }
-                })
-                .show();
+        AppSettings.show(this, () -> startActivity(new Intent(this, DimActivity.class)), this::settingsChanged);
     }
 
-    private void askMust() {
-        EditText e = new EditText(this);
-        e.setSingleLine(true);
-        e.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
-        e.setText(Store.str(this, Store.MUST_NICK));
-        e.setHint("ник, например sergvo1kov");
-        new AlertDialog.Builder(this, dialogTheme())
-                .setTitle("Must: ник профиля")
-                .setMessage("Профиль должен быть открытым. Показываем «Хочу посмотреть».")
-                .setView(e)
-                .setPositiveButton("Сохранить", (d, w) -> {
-                    String nick = e.getText().toString().trim().replace("@", "").replace("https://mustapp.com/", "");
-                    Store.prefs(this).edit().putString(Store.MUST_NICK, nick).putLong(Store.MUST_AT, 0).apply();
-                    mustTried = 0;
-                    refreshMust(true);
-                })
-                .setNegativeButton("Отмена", null)
-                .show();
-    }
-
-    private void askTmdb() {
-        EditText e = new EditText(this);
-        e.setSingleLine(true);
-        e.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
-        e.setText(Store.str(this, Store.TMDB_KEY));
-        e.setHint("API key или Read Access Token");
-        new AlertDialog.Builder(this, dialogTheme())
-                .setTitle("Lampa: ключ TMDB")
-                .setMessage("Бесплатный ключ: themoviedb.org → Настройки → API. С ним постер открывает карточку фильма в Lampa сразу.")
-                .setView(e)
-                .setPositiveButton("Сохранить", (d, w) -> Store.prefs(this).edit()
-                        .putString(Store.TMDB_KEY, e.getText().toString().trim()).remove("lampa_ids").apply())
-                .setNegativeButton("Отмена", null)
-                .show();
+    /** Theme, Must or TMDB changed (here or in the Control Center): rebuild what depends on them. */
+    private void settingsChanged() {
+        if (AppSettings.light(this) != light) {
+            recreate();
+            return;
+        }
+        mustTried = 0;
+        refreshMust(true);
+        refreshFresh(true);
     }
 
     private void openGoogleTvPanel() {
-        try {
-            startActivity(new Intent().setComponent(new ComponentName(HomeRedirectService.STOCK,
-                    HomeRedirectService.STOCK + ".dashboard.DashboardHandler")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-        } catch (RuntimeException e) {
-            Toast.makeText(this, "Удерживай кнопку Home на пульте", Toast.LENGTH_LONG).show();
-        }
+        AppSettings.googlePanel(this);
     }
 
     // ------------------------------------------------------------------ helpers

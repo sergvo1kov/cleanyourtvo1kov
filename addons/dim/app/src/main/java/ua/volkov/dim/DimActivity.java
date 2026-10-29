@@ -172,9 +172,9 @@ public final class DimActivity extends Activity {
         torr.addView(torrSub, margins(0, 8, 0, 0));
         row2.addView(torr, weight(1, 0, 0, 20, 0));
 
-        LinearLayout settings = card(v -> openSettings());
+        LinearLayout settings = card(v -> AppSettings.show(this, this::openSettings, () -> { }));
         settings.addView(text("Настройки", 22, WHITE, true));
-        settings.addView(text("Тревоги, Smart Life, Telegram", 14, FAINT, false), margins(0, 8, 0, 0));
+        settings.addView(text("Flick TV, Must, Lampa, ключи", 14, FAINT, false), margins(0, 8, 0, 0));
         row2.addView(settings, weight(1, 0, 0, 0, 0));
         col.addView(row2, margins(0, 0, 0, 30));
 

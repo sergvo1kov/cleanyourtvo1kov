@@ -37,6 +37,7 @@ function Setup-Flick {
   Write-Host "Разрешения: Сейчас играет, каналы ТВ, таймер заставки"
   Sh "cmd notification allow_listener ua.volkov.dim/ua.volkov.dim.NowPlayingListener" | Out-Null
   Sh "pm grant ua.volkov.dim com.android.providers.tv.permission.READ_EPG_DATA" | Out-Null
+  Sh "pm grant ua.volkov.dim android.permission.READ_TV_LISTINGS" | Out-Null
   Sh "appops set ua.volkov.dim WRITE_SETTINGS allow" | Out-Null
   Sh "am start -n ua.volkov.dim/.HomeActivity" | Out-Null
 }

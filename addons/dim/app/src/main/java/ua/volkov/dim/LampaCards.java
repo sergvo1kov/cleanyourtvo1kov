@@ -20,6 +20,22 @@ final class LampaCards {
 
     private LampaCards() {}
 
+    /**
+     * Lampa builds its Android TV channels (recommendations, history) when a home screen sends it
+     * INITIALIZE_PROGRAMS, as the stock launcher does after an install or update. Sent once per version.
+     */
+    static void initialize(Context ctx) {
+        try {
+            long updated = ctx.getPackageManager().getPackageInfo(PKG, 0).lastUpdateTime;
+            android.content.SharedPreferences p = Store.prefs(ctx);
+            if (p.getLong("lampa_init", 0) == updated) return;
+            ctx.sendBroadcast(new android.content.Intent(android.media.tv.TvContract.ACTION_INITIALIZE_PROGRAMS).setPackage(PKG));
+            p.edit().putLong("lampa_init", updated).apply();
+        } catch (Exception ignored) {
+            // Lampa not installed
+        }
+    }
+
     static JSONArray read(Context ctx) {
         JSONArray out = new JSONArray();
         StringBuilder dbg = new StringBuilder();
