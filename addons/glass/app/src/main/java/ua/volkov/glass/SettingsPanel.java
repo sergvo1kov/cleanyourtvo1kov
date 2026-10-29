@@ -99,6 +99,15 @@ final class SettingsPanel extends Panel {
             a.recreate();
         });
 
+        section(list, "Внешний вид");
+        String[] lvl = {"Слабое", "Среднее", "Сильное"};
+        cycle(list, R.drawable.g_bulb, "Стиль стекла", new String[]{"Liquid Glass", "Frosted"},
+                p.getString("glass_style", "liquid").equals("frosted") ? 1 : 0,
+                i -> p.edit().putString("glass_style", i == 1 ? "frosted" : "liquid").apply());
+        cycle(list, R.drawable.qp_picture, "Размытие", lvl, p.getInt("blur", 1), i -> p.edit().putInt("blur", i).apply());
+        cycle(list, R.drawable.g_moon, "Затемнение под приложениями", lvl, p.getInt("scrim", 1),
+                i -> p.edit().putInt("scrim", i).apply());
+
         section(list, "Сервисы");
         plate(list, R.drawable.qp_gear, "Ключи и сервисы", "в Flick TV  ›", v -> {
             close();
@@ -128,6 +137,34 @@ final class SettingsPanel extends Panel {
         a.post(() -> {
             if (first != null) first.requestFocus();
         });
+    }
+
+    private boolean restyle;
+
+    interface Pick {
+        void on(int i);
+    }
+
+    /** A plate whose value steps through a few choices on OK; the look applies when Settings closes. */
+    private void cycle(LinearLayout list, int icon, String title, String[] values, int start, Pick pick) {
+        int[] at = {Math.max(0, Math.min(values.length - 1, start))};
+        View pl = plate(list, icon, title, values[at[0]] + "  ›", null);
+        TextView v = value(pl);
+        pl.setOnClickListener(x -> {
+            at[0] = (at[0] + 1) % values.length;
+            v.setText(values[at[0]] + "  ›");
+            pick.on(at[0]);
+            restyle = true;
+        });
+    }
+
+    @Override
+    void close() {
+        super.close();
+        if (restyle) {
+            restyle = false;
+            a.post(a::recreate);
+        }
     }
 
     private void section(LinearLayout list, String name) {

@@ -23,10 +23,51 @@ final class Ui {
 
     private final Context c;
     private final float dp;
+    /** Look & Style from the settings: Liquid Glass (clear, bright rim) or Frosted (milky). */
+    final boolean liquid;
+    /** Blur behind the apps and panels: 0 light, 1 medium, 2 strong. */
+    final int blurLevel;
+    /** How dark the picture gets behind the apps: 0 light, 1 medium, 2 dark. */
+    final int scrimLevel;
 
     Ui(Context c) {
         this.c = c;
         this.dp = c.getResources().getDisplayMetrics().density;
+        android.content.SharedPreferences p = c.getSharedPreferences("glass", Context.MODE_PRIVATE);
+        liquid = !"frosted".equals(p.getString("glass_style", "liquid"));
+        blurLevel = p.getInt("blur", 1);
+        scrimLevel = p.getInt("scrim", 1);
+    }
+
+    /** Width the picture is shrunk to before it is blown up again: smaller is blurrier. */
+    int blurWidth() {
+        return blurLevel == 0 ? 96 : blurLevel == 2 ? 24 : 44;
+    }
+
+    float scrim() {
+        return scrimLevel == 0 ? 0.5f : scrimLevel == 2 ? 0.88f : 0.72f;
+    }
+
+    /** The sheets of the panels: more see-through in Liquid Glass. */
+    int sheet() {
+        return liquid ? 0xC71C1C1E : 0xEB2A2A2E;
+    }
+
+    /** The top capsules: smoky glass with a thin light rim. */
+    GradientDrawable capsule(float radiusDp) {
+        GradientDrawable g = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, capsuleColours(false));
+        g.setCornerRadius(px(radiusDp));
+        g.setStroke(Math.max(1, px(0.75f)), liquid ? 0x59FFFFFF : 0x33FFFFFF);
+        return g;
+    }
+
+    void capsuleFocus(GradientDrawable g, boolean has) {
+        g.setColors(capsuleColours(has));
+    }
+
+    private int[] capsuleColours(boolean focused) {
+        if (focused) return new int[]{0xF7FFFFFF, 0xEBFFFFFF};
+        return liquid ? new int[]{0x4D2C2C2E, 0x331C1C1E} : new int[]{0x998E8E93, 0x80636366};
     }
 
     int px(float v) {
@@ -60,9 +101,9 @@ final class Ui {
     /** Frosted glass: a light veil with a thin bright edge, like the reference's dock and capsules. */
     GradientDrawable glass(float radiusDp) {
         GradientDrawable g = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[]{0x38FFFFFF, 0x1AFFFFFF});
+                liquid ? new int[]{0x38FFFFFF, 0x14FFFFFF} : new int[]{0x66A8A8AD, 0x4D78787E});
         g.setCornerRadius(px(radiusDp));
-        g.setStroke(Math.max(1, px(0.75f)), GLASS_LINE);
+        g.setStroke(Math.max(1, px(0.75f)), liquid ? 0x59FFFFFF : GLASS_LINE);
         return g;
     }
 

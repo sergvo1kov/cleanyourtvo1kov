@@ -73,7 +73,11 @@ public final class MainActivity extends Activity {
     private LinearLayout appsGrid;
     private String gridSig;
     private android.graphics.Bitmap softFor, softBlur;
-    private TextView weatherCap, statusCap, hint;
+    private FrameLayout weatherCap;
+    private LinearLayout statusCap;
+    private TextView wGlyph, wTemp, sTime, hint;
+    private View alertDot;
+    private ImageView sAvatar;
     private boolean appsShown;
 
     private JSONArray feed = new JSONArray();
@@ -88,7 +92,7 @@ public final class MainActivity extends Activity {
     private WeatherPanel weather;
     private SettingsPanel settings;
     private ProfilePanel profile;
-    private String weatherKey, statusKey;
+    private String statusKey;
 
     private final SimpleDateFormat clock = new SimpleDateFormat("H:mm", Locale.getDefault());
 
@@ -209,7 +213,7 @@ public final class MainActivity extends Activity {
 
     /** A new profile picture: the capsule and the Control Center follow. */
     void avatarChanged() {
-        statusCap.setText("");
+        statusKey = null;
         renderCapsules();
         if (control.isOpen()) control.render();
     }
@@ -300,21 +304,39 @@ public final class MainActivity extends Activity {
         });
         root.addView(stageFocus, ui.flp(560, 200, Gravity.START | Gravity.BOTTOM, 64, 0, 0, 168));
 
-        // capsules: weather on the left, the clock with the alert state on the right
-        weatherCap = ui.text("", 12, Ui.WHITE, true);
-        weatherCap.setGravity(Gravity.CENTER);
-        capsule(weatherCap, v -> weather.open());
-        root.addView(weatherCap, ui.flp(-2, 40, Gravity.START | Gravity.TOP, 48, 32, 0, 0));
-        weatherCap.setMinWidth(ui.px(40));
-        statusCap = ui.text("", 12, Ui.WHITE, true);
-        statusCap.setGravity(Gravity.CENTER);
-        capsule(statusCap, v -> control.open());
-        statusCap.setPadding(ui.px(14), 0, ui.px(6), 0);   // the avatar sits close to the capsule's round end
+        // capsules as in tvOS: a small round weather badge on the left (with a tiny alert dot), the clock
+        // and the profile picture on the right
+        weatherCap = new FrameLayout(this);
+        LinearLayout wcol = new LinearLayout(this);
+        wcol.setOrientation(LinearLayout.VERTICAL);
+        wcol.setGravity(Gravity.CENTER);
+        wGlyph = ui.text("☁", 13, Ui.WHITE, false);
+        wTemp = ui.text("", 9.5f, Ui.WHITE, true);
+        wcol.addView(wGlyph);
+        wcol.addView(wTemp, ui.lp(-2, -2, 0, 1, 0, 0));
+        weatherCap.addView(wcol, new FrameLayout.LayoutParams(-1, -1, Gravity.CENTER));
+        alertDot = new View(this);
+        GradientDrawable dg = new GradientDrawable();
+        dg.setShape(GradientDrawable.OVAL);
+        dg.setColor(0x66FFFFFF);
+        alertDot.setBackground(dg);
+        weatherCap.addView(alertDot, ui.flp(5, 5, Gravity.TOP | Gravity.END, 0, 7, 7, 0));
+        capsule(weatherCap, 25, v -> weather.open());
+        root.addView(weatherCap, ui.flp(50, 50, Gravity.START | Gravity.TOP, 52, 28, 0, 0));
+
+        statusCap = new LinearLayout(this);
+        statusCap.setGravity(Gravity.CENTER_VERTICAL);
+        statusCap.setPadding(ui.px(14), 0, ui.px(4), 0);
+        sTime = ui.text("", 12, Ui.WHITE, false);
+        statusCap.addView(sTime, ui.lp(-2, -2, 0, 0, 9, 0));
+        sAvatar = new ImageView(this);
+        statusCap.addView(sAvatar, ui.lp(28, 28, 0, 0, 0, 0));
+        capsule(statusCap, 18, v -> control.open());
         statusCap.setOnLongClickListener(v -> {
             profile.open();
             return true;
         });
-        root.addView(statusCap, ui.flp(-2, 40, Gravity.END | Gravity.TOP, 0, 32, 48, 0));
+        root.addView(statusCap, ui.flp(-2, 36, Gravity.END | Gravity.TOP, 0, 35, 52, 0));
 
         // all apps, under the dock when it moves up
         appsWrap = new FrameLayout(this);
@@ -357,18 +379,27 @@ public final class MainActivity extends Activity {
         return root;
     }
 
-    private void capsule(TextView t, View.OnClickListener click) {
-        GradientDrawable g = ui.glass(20);
-        t.setBackground(g);
-        t.setPadding(ui.px(14), 0, ui.px(14), 0);
-        t.setFocusable(true);
-        t.setClickable(true);
-        t.setOnClickListener(click);
-        t.setOnFocusChangeListener((v, has) -> {
-            g.setColors(has ? new int[]{0xF2FFFFFF, 0xF2FFFFFF} : new int[]{0x38FFFFFF, 0x1AFFFFFF});
-            ((TextView) v).setTextColor(has ? Ui.GRAPHITE : Ui.WHITE);
-            v.animate().scaleX(has ? 1.08f : 1f).scaleY(has ? 1.08f : 1f).setDuration(160).start();
+    /** A smoky glass capsule; on focus it turns white with graphite text, as in tvOS. */
+    private void capsule(ViewGroup c, float radiusDp, View.OnClickListener click) {
+        GradientDrawable g = ui.capsule(radiusDp);
+        c.setBackground(g);
+        c.setFocusable(true);
+        c.setClickable(true);
+        c.setOnClickListener(click);
+        c.setOnFocusChangeListener((v, has) -> {
+            ui.capsuleFocus(g, has);
+            tintTexts(c, has ? Ui.GRAPHITE : Ui.WHITE);
+            v.animate().scaleX(has ? 1.1f : 1f).scaleY(has ? 1.1f : 1f).setDuration(180)
+                    .setInterpolator(new DecelerateInterpolator()).start();
         });
+    }
+
+    private static void tintTexts(ViewGroup g, int colour) {
+        for (int i = 0; i < g.getChildCount(); i++) {
+            View v = g.getChildAt(i);
+            if (v instanceof TextView) ((TextView) v).setTextColor(colour);
+            else if (v instanceof ViewGroup) tintTexts((ViewGroup) v, colour);
+        }
     }
 
     // ------------------------------------------------------------------ the film stage
@@ -564,46 +595,25 @@ public final class MainActivity extends Activity {
 
     private void renderCapsules() {
         JSONObject w = status.optJSONObject("weather");
-        String wt = w == null || w.optLong("at") == 0 ? "☁" : Ui.glyph(w.optInt("code"), w.optBoolean("day", true)) + "  " + Ui.deg(w.optInt("temp"));
+        boolean has = w != null && w.optLong("at") != 0;
+        String g = has ? Ui.glyph(w.optInt("code"), w.optBoolean("day", true)) : "☁";
+        String t = has ? Math.round(w.optDouble("temp")) + "°" : "";
+        if (!TextUtils.equals(wGlyph.getText(), g)) wGlyph.setText(g);
+        if (!TextUtils.equals(wTemp.getText(), t)) wTemp.setText(t);
+        wTemp.setVisibility(t.isEmpty() ? View.GONE : View.VISIBLE);
+        // the alert state is a tiny dot on the weather badge: there, but quiet
         JSONObject a = status.optJSONObject("alert");
         int state = a == null ? -1 : a.optInt("state", -1);
-        // the alert state is a tiny dot after the temperature: there, but quiet
         int dot = state == 1 ? 0xFFFF453A : state == 2 ? 0xFFFF9F0A : state == 0 ? 0xFF30D158 : 0x66FFFFFF;
-        String wkey = wt + "|" + dot;
-        if (!wkey.equals(weatherKey)) {
-            weatherKey = wkey;
-            android.text.SpannableStringBuilder b = new android.text.SpannableStringBuilder(wt).append("   ");
-            int at = b.length();
-            b.append("●");
-            b.setSpan(new android.text.style.AbsoluteSizeSpan(7, true), at, at + 1, 0);
-            b.setSpan(new android.text.style.ForegroundColorSpan(dot), at, at + 1, 0);
-            b.setSpan(new android.text.style.SuperscriptSpan() {
-                @Override
-                public void updateDrawState(android.text.TextPaint tp) {
-                    tp.baselineShift += (int) (tp.ascent() / 3);
-                }
-
-                @Override
-                public void updateMeasureState(android.text.TextPaint tp) {
-                    tp.baselineShift += (int) (tp.ascent() / 3);
-                }
-            }, at, at + 1, 0);
-            weatherCap.setText(b);
-        }
+        ((GradientDrawable) alertDot.getBackground()).setColor(dot);
         // the clock, then the profile picture
         String time = clock.format(new Date());
         int av = Avatar.current(this);
         String skey = time + "|" + av;
-        if (!skey.equals(statusKey) || statusCap.getText().length() == 0) {
+        if (!skey.equals(statusKey)) {
+            if (statusKey == null || !statusKey.endsWith("|" + av)) sAvatar.setImageDrawable(new Avatar(av, ui.px(28)));
             statusKey = skey;
-            android.text.SpannableStringBuilder b = new android.text.SpannableStringBuilder(time).append("   ");
-            int at = b.length();
-            b.append("\uFFFC");
-            Avatar d = new Avatar(av, ui.px(30));
-            int align = android.os.Build.VERSION.SDK_INT >= 29 ? android.text.style.DynamicDrawableSpan.ALIGN_CENTER
-                    : android.text.style.DynamicDrawableSpan.ALIGN_BOTTOM;
-            b.setSpan(new android.text.style.ImageSpan(d, align), at, at + 1, 0);
-            statusCap.setText(b);
+            sTime.setText(time);
         }
     }
 
@@ -770,12 +780,12 @@ public final class MainActivity extends Activity {
                 soft.animate().cancel();
                 if (softFor != currentArt) {
                     softFor = currentArt;
-                    softBlur = Ui.blur(currentArt, 40);
+                    softBlur = Ui.blur(currentArt, ui.blurWidth());
                 }
                 soft.setImageBitmap(softBlur);
                 soft.animate().alpha(1f).setDuration(380).start();
             }
-            dim.animate().alpha(0.72f).setDuration(300).start();
+            dim.animate().alpha(ui.scrim()).setDuration(300).start();
             FrameLayout.LayoutParams wl = (FrameLayout.LayoutParams) appsWrap.getLayoutParams();
             wl.topMargin = ui.px(78) + dockBand.getHeight() + ui.px(4);
             appsWrap.setLayoutParams(wl);

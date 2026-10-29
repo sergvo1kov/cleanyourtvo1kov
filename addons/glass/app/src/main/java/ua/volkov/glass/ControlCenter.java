@@ -54,7 +54,7 @@ final class ControlCenter extends Panel {
         LinearLayout s = new LinearLayout(a);
         s.setOrientation(LinearLayout.VERTICAL);
         s.setPadding(ui.px(16), ui.px(14), ui.px(16), ui.px(16));
-        s.setBackground(ui.round(0xE61C1C1E, 28));
+        s.setBackground(ui.round(ui.sheet(), 28));
         s.setClipChildren(false);
         s.setClipToPadding(false);
 

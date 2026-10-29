@@ -29,7 +29,7 @@ final class ProfilePanel extends Panel {
         s.setOrientation(LinearLayout.VERTICAL);
         s.setGravity(Gravity.CENTER_HORIZONTAL);
         s.setPadding(ui.px(18), ui.px(20), ui.px(18), ui.px(20));
-        s.setBackground(ui.round(0xE61C1C1E, 28));
+        s.setBackground(ui.round(ui.sheet(), 28));
         s.setClipChildren(false);
         s.setClipToPadding(false);
 

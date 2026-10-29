@@ -41,7 +41,7 @@ final class WeatherPanel extends Panel {
         LinearLayout s = new LinearLayout(a);
         s.setOrientation(LinearLayout.VERTICAL);
         s.setPadding(ui.px(20), ui.px(18), ui.px(20), ui.px(14));
-        s.setBackground(ui.round(0xE61C1C1E, 28));
+        s.setBackground(ui.round(ui.sheet(), 28));
         s.setFocusable(true);   // the sheet itself holds the focus: there is nothing to press here
         body = new LinearLayout(a);
         body.setOrientation(LinearLayout.VERTICAL);
