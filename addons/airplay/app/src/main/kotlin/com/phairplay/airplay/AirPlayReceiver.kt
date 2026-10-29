@@ -191,6 +191,7 @@ class AirPlayReceiver(
      */
     fun start() {
         Logger.i("AirPlayReceiver starting (displayName='$displayName')")
+        startPauseWatchdog()
         scope.launch {
             try {
                 startTimingHandler()
@@ -518,6 +519,7 @@ class AirPlayReceiver(
 
                 while (isActive) {
                     socket.receive(packet)
+                    StreamStats.lastAudioPacketMs = SystemClock.elapsedRealtime()
                     // copyOf trims to actual packet length before passing to the player
                     audioPlayer?.playAudioPacket(packet.data.copyOf(packet.length))
                 }
@@ -881,6 +883,33 @@ class AirPlayReceiver(
         npProgress = npProgress?.let { it.copy(positionMs = it.positionAt(now, npPaused), anchorElapsedMs = now) }
         npPaused = paused
         emitNowPlaying()
+    }
+
+    /**
+     * Flick AirPlay: a phone that pauses simply stops sending audio, and the protocol's own pause signal
+     * (FLUSH) can come seconds later. So the track's clock follows the audio itself: no packet for 0.7 s
+     * means paused, packets again mean playing.
+     */
+    private fun startPauseWatchdog() {
+        scope.launch {
+            var stoppedByWatchdog = false
+            while (isActive) {
+                delay(250)
+                if (videoTransport == AirPlayVideoTransport.MULTIROOM) continue
+                val last = StreamStats.lastAudioPacketMs
+                if (last == 0L || npTitle.isNullOrBlank() && npArtwork == null) continue
+                val gap = SystemClock.elapsedRealtime() - last
+                if (gap > 700 && !npPaused) {
+                    Logger.i("Audio stopped ${gap}ms ago: paused")
+                    stoppedByWatchdog = true
+                    onPlaybackRate(0f)
+                } else if (gap < 300 && npPaused && stoppedByWatchdog) {
+                    Logger.i("Audio flowing again: playing")
+                    stoppedByWatchdog = false
+                    onPlaybackRate(1f)
+                }
+            }
+        }
     }
 
     private fun rtpDelta(a: Long, b: Long): Long = (a - b) and 0xFFFFFFFFL

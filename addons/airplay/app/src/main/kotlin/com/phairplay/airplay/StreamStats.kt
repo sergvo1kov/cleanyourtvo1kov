@@ -14,6 +14,8 @@ package com.phairplay.airplay
 object StreamStats {
     /** Master switch, mirrored from the user setting; the overlay only draws when true. */
     @Volatile var overlayEnabled = false
+    /** Flick AirPlay: when the last audio packet arrived (elapsedRealtime ms), for the pause watchdog. */
+    @Volatile var lastAudioPacketMs = 0L
 
     // ─── Video (MirrorStreamServer) ──────────────────────────────────────────
     @Volatile var videoRes = ""        // e.g. "1920x1080"

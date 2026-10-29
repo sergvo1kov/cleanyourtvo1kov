@@ -185,6 +185,7 @@ class AudioStreamServer(
             while (running) {
                 packet.length = buf.size      // reset capacity — receive() shrinks length to the last datagram
                 socket.receive(packet)
+                com.phairplay.airplay.StreamStats.lastAudioPacketMs = android.os.SystemClock.elapsedRealtime()
                 recv++
                 if (rtpCount < 6) {
                     Logger.i("Audio RTP[$rtpCount] ${packet.length}B hdr: ${hex(packet.data, minOf(20, packet.length))}")

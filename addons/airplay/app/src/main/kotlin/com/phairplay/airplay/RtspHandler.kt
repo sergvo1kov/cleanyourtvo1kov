@@ -659,7 +659,9 @@ open class RtspHandler(
                 Logger.d("MR:  Body: ${request.bodyBytes.size}B ${mrBodyPreview(request.bodyBytes)}")
             }
         } else {
-            Logger.d("RTSP ${request.method} ${request.uri}")
+            // Flick AirPlay: control requests at info level, to see when a sender pauses, skips or flushes
+            if (request.method != "GET_PARAMETER" && request.method != "OPTIONS") Logger.i("RTSP ${request.method} ${request.uri}")
+            else Logger.d("RTSP ${request.method} ${request.uri}")
         }
         // Senders attach their DACP reverse-control identity to most requests — capture it so the TV
         // remote can drive playback (DacpClient dedups, so this is cheap to call repeatedly).
