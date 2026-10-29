@@ -69,8 +69,8 @@ final class LampaCards {
                     String art = poster >= 0 ? c.getString(poster) : null;
                     String wide = thumb >= 0 ? c.getString(thumb) : null;
                     if (art == null || art.isEmpty()) art = wide;
-                    o.put("poster", direct(art));
-                    if (wide != null && !wide.isEmpty()) o.put("backdrop", direct(wide));
+                    o.put("poster", direct(art, "w342"));
+                    if (wide != null && !wide.isEmpty()) o.put("backdrop", direct(wide, "w780"));
                     o.put("intent", intent >= 0 && c.getString(intent) != null ? c.getString(intent) : "");
                     o.put("src", "lampa");
                     o.put("label", next ? "Продолжить" : "Lampa");
@@ -98,10 +98,15 @@ final class LampaCards {
      * Lampa takes pictures through image proxies; a TMDB path goes straight to TMDB's own server, over
      * HTTPS (this app allows no cleartext traffic except to the TV itself).
      */
-    static String direct(String url) {
+    static String direct(String url, String size) {
         if (url == null) return "";
         int i = url.indexOf("/t/p/");
-        if (i > 0 && url.startsWith("http")) return "https://image.tmdb.org" + url.substring(i);
+        if (i > 0 && url.startsWith("http")) {
+            // /t/p/<size>/<file>: ask TMDB for the size the row needs, not the original
+            String rest = url.substring(i + 5);
+            int slash = rest.indexOf('/');
+            return "https://image.tmdb.org/t/p/" + size + (slash >= 0 ? rest.substring(slash) : "/" + rest);
+        }
         if (url.startsWith("http://")) return "https://" + url.substring(7);
         return url;
     }

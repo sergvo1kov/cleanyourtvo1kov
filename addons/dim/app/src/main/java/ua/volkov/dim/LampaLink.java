@@ -153,7 +153,7 @@ final class LampaLink {
             Http.Response r = Http.get("https://api.themoviedb.org/3/" + media + "/" + id + (v3 ? "?api_key=" + key : ""), h, 10_000);
             if (r.code != 200) return null;
             String path = new JSONObject(r.body).optString("backdrop_path", "");
-            String url = path.isEmpty() || "null".equals(path) ? "" : "https://image.tmdb.org/t/p/w1280" + path;
+            String url = path.isEmpty() || "null".equals(path) ? "" : "https://image.tmdb.org/t/p/w780" + path;
             if (cache.length() > 300) cache = new JSONObject();
             cache.put(ckey, url);
             Store.prefs(ctx).edit().putString("backdrops", cache.toString()).apply();

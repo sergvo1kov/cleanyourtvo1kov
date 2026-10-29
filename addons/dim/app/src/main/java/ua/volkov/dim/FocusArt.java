@@ -31,7 +31,6 @@ final class FocusArt {
     FocusArt(Context ctx, FrameLayout root, boolean light) {
         this.ctx = ctx;
         dp = ctx.getResources().getDisplayMetrics().density;
-        int w = ctx.getResources().getDisplayMetrics().widthPixels;
         box = new FrameLayout(ctx);
         box.setAlpha(0f);
         for (int i = 0; i < 2; i++) {
@@ -40,30 +39,21 @@ final class FocusArt {
             img[i].setAlpha(0f);
             box.addView(img[i], new FrameLayout.LayoutParams(-1, -1));
         }
-        int bg = light ? 0xFFE9EEF6 : 0xFF0A0D18;
-        int clear = bg & 0x00FFFFFF;
+        // Lampa's look: the picture fills the screen, darkened towards the left and the bottom where text is
+        int bg = light ? 0xEEF2F8 : 0x070A14;
         View left = new View(ctx);
         left.setBackground(new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
-                new int[]{bg, (bg & 0x00FFFFFF) | 0xB0000000, clear, clear}));
+                new int[]{bg | 0xF0000000, bg | 0xB4000000, bg | 0x50000000, bg | 0x10000000}));
         box.addView(left, new FrameLayout.LayoutParams(-1, -1));
         View bottom = new View(ctx);
         bottom.setBackground(new GradientDrawable(GradientDrawable.Orientation.BOTTOM_TOP,
-                new int[]{bg, (bg & 0x00FFFFFF) | 0xC0000000, clear}));
+                new int[]{bg | 0xF5000000, bg | 0xC8000000, bg | 0x30000000, bg}));
         box.addView(bottom, new FrameLayout.LayoutParams(-1, -1));
         View top = new View(ctx);
         top.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[]{(bg & 0x00FFFFFF) | 0x99000000, clear, clear}));
+                new int[]{bg | 0x8C000000, bg, bg, bg}));
         box.addView(top, new FrameLayout.LayoutParams(-1, -1));
-        // the right two thirds of the screen, the upper part where the row is
-        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(Math.round(w * 0.68f), -1, Gravity.END | Gravity.TOP);
-        root.addView(box, lp);
-        box.post(() -> fitHeight(root));
-    }
-
-    private void fitHeight(FrameLayout root) {
-        FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) box.getLayoutParams();
-        lp.height = Math.round(root.getHeight() * 0.74f);
-        box.setLayoutParams(lp);
+        root.addView(box, new FrameLayout.LayoutParams(-1, -1));
     }
 
     /** Waits a moment, so scrolling fast along the row does not flicker through every film. */

@@ -968,7 +968,9 @@ public final class HomeActivity extends Activity {
             if (!badge.isEmpty()) {
                 TextView b = text(badge, 7.5f, 0xFFFFFFFF, true);
                 b.setPadding(px(5), px(1.5f), px(5), px(2));
-                b.setBackground(round("lampa".equals(o.optString("src")) ? 0xE62E7DFF : 0xE6E5484D, 5, 0));
+                int bc = "lampa".equals(o.optString("src")) ? 0xE62E7DFF
+                        : "fresh".equals(o.optString("src")) ? 0xE6E5484D : 0xE628A55F;   // Lampa, new, your Must list
+                b.setBackground(round(bc, 5, 0));
                 FrameLayout.LayoutParams bl = new FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.START);
                 bl.setMargins(px(5), px(5), 0, 0);
                 frame.addView(b, bl);
@@ -983,10 +985,23 @@ public final class HomeActivity extends Activity {
             card.addView(t, margins(0, 4, 0, 0));
             row.addView(card, margins(0, 0, 14, 0));
         }
+        // posters past the page edge are dimmed: there is more to scroll to
+        hs.setOnScrollChangeListener((v, x, y, ox, oy) -> dimBeyond(hs, row));
+        hs.post(() -> dimBeyond(hs, row));
         // bleed the row into the page margin so the first poster lines up with the cards below
         FrameLayout.LayoutParams hl = new FrameLayout.LayoutParams(-1, -1);
         hl.setMargins(-px(8), -px(8), -px(8), 0);
         hero.addView(hs, hl);
+    }
+
+    private void dimBeyond(HorizontalScrollView hs, LinearLayout row) {
+        int right = hs.getScrollX() + hs.getWidth();
+        for (int i = 0; i < row.getChildCount(); i++) {
+            View c = row.getChildAt(i);
+            boolean past = c.getRight() > right + px(4);
+            float to = past ? 0.38f : 1f;
+            if (Math.abs(c.getAlpha() - to) > 0.01f) c.animate().alpha(to).setDuration(220).start();
+        }
     }
 
     private volatile JSONArray lampa = new JSONArray();
@@ -1005,13 +1020,15 @@ public final class HomeActivity extends Activity {
             lampaCount = l.length();
             heroMode = "";
         }
-        JSONArray fresh;
+        JSONArray fresh, want;
         try {
             fresh = new JSONArray(Store.prefs(this).getString(Store.FRESH_LIST, "[]"));
+            want = new JSONArray(Store.prefs(this).getString(Store.MUST_WANT, "[]"));
         } catch (Exception e) {
             fresh = new JSONArray();
+            want = new JSONArray();
         }
-        return Fresh.mix(l, must, fresh);
+        return Fresh.mix(l, want, must, fresh);
     }
 
     private long freshTried;
@@ -1026,8 +1043,10 @@ public final class HomeActivity extends Activity {
         io.execute(() -> {
             try {
                 java.util.Set<String> skip = new java.util.HashSet<>();
-                JSONArray must = new JSONArray(Store.prefs(app).getString(Store.MUST_LIST, "[]"));
-                for (int i = 0; i < must.length(); i++) skip.add(Fresh.norm(must.optJSONObject(i).optString("title")));
+                for (String k : new String[]{Store.MUST_LIST, Store.MUST_WANT}) {
+                    JSONArray must = new JSONArray(Store.prefs(app).getString(k, "[]"));
+                    for (int i = 0; i < must.length(); i++) skip.add(Fresh.norm(must.optJSONObject(i).optString("title")));
+                }
                 JSONArray list = Fresh.load(app, skip);
                 if (list.length() > 0) {
                     Store.prefs(app).edit().putString(Store.FRESH_LIST, list.toString()).putLong(Store.FRESH_AT, now).apply();
@@ -1043,15 +1062,26 @@ public final class HomeActivity extends Activity {
         String nick = Store.str(this, Store.MUST_NICK);
         if (nick.isEmpty()) return;
         long now = System.currentTimeMillis();
+        if (!Store.prefs(this).contains(Store.MUST_WANT)) force = true;   // first run of 2.1: fetch the Want list
         if (!force && (now - Store.prefs(this).getLong(Store.MUST_AT, 0) < 30 * 60_000L || now - mustTried < 5 * 60_000L)) return;
         mustTried = now;
         Context app = getApplicationContext();
         io.execute(() -> {
             try {
                 JSONArray list = Must.similar(app, nick);
-                if (list.length() == 0) list = Must.want(app, nick);
-                if (list.length() > 0) {
-                    Store.prefs(app).edit().putString(Store.MUST_LIST, list.toString()).putLong(Store.MUST_AT, now).apply();
+                JSONArray want = new JSONArray();
+                try {
+                    want = Must.want(app, nick);
+                    for (int i = 0; i < want.length(); i++) want.getJSONObject(i).put("label", "Хочу посмотреть");
+                } catch (Exception ignored) {
+                    // the recommendations still show
+                }
+                if (list.length() > 0 || want.length() > 0) {
+                    Store.prefs(app).edit().putString(Store.MUST_LIST, list.toString())
+                            .putString(Store.MUST_WANT, want.toString()).putLong(Store.MUST_AT, now).apply();
+                    for (JSONArray a : new JSONArray[]{want, list}) {
+                        for (int i = 0; i < Math.min(12, a.length()); i++) Images.prefetch(a.optJSONObject(i).optString("poster"));
+                    }
                     main.post(() -> heroMode = "");   // rebuild with the new posters
                 }
             } catch (Exception ignored) {

@@ -69,7 +69,7 @@ final class Fresh {
         row.put("title", title);
         row.put("poster", IMG + poster);
         String back = o.optString("backdrop_path", "");
-        if (!back.isEmpty() && !"null".equals(back)) row.put("backdrop", "https://image.tmdb.org/t/p/w1280" + back);
+        if (!back.isEmpty() && !"null".equals(back)) row.put("backdrop", "https://image.tmdb.org/t/p/w780" + back);
         row.put("year", date.length() >= 4 ? date.substring(0, 4) : "");
         row.put("src", "fresh");
         row.put("label", "movie".equals(media) ? "Новинка" : "Сериал");
@@ -81,10 +81,10 @@ final class Fresh {
     }
 
     /**
-     * The For you row: what Lampa publishes first (continue watching), then Must's picks with a fresh
-     * title after every two of them.
+     * The For you row: Lampa's Continue watching first, then the Want list, Must's picks, fresh titles
+     * and Lampa's recommendations in turn.
      */
-    static JSONArray mix(JSONArray lampa, JSONArray must, JSONArray fresh) {
+    static JSONArray mix(JSONArray lampa, JSONArray want, JSONArray must, JSONArray fresh) {
         JSONArray out = new JSONArray();
         java.util.List<Object> recs = new java.util.ArrayList<>();
         for (int i = 0; i < lampa.length(); i++) {
@@ -93,9 +93,10 @@ final class Fresh {
             if ("Продолжить".equals(o.optString("label")) && out.length() < 4) out.put(o);   // continue watching first
             else recs.add(o);
         }
-        // then Must, Must, a fresh title, one of Lampa's own, and again
-        int m = 0, f = 0, r = 0;
-        while (out.length() < 40 && (m < must.length() || f < fresh.length() || r < recs.size())) {
+        // then one from the Want list, two Must picks, a fresh title, one of Lampa's own, and again
+        int w = 0, m = 0, f = 0, r = 0;
+        while (out.length() < 44 && (w < want.length() || m < must.length() || f < fresh.length() || r < recs.size())) {
+            if (w < want.length()) out.put(want.opt(w++));
             for (int k = 0; k < 2 && m < must.length(); k++) out.put(must.opt(m++));
             if (f < fresh.length()) out.put(fresh.opt(f++));
             if (r < recs.size()) out.put(recs.get(r++));
