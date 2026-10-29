@@ -127,6 +127,42 @@ final class LampaLink {
         return best;
     }
 
+    /**
+     * A wide picture for the focus backdrop: the row's own one, or the film's TMDB backdrop found by its
+     * id (with the TMDB key). Cached. Blocking. Null when there is none.
+     */
+    static String backdrop(Context ctx, JSONObject film) {
+        String own = film.optString("backdrop");
+        if (!own.isEmpty()) return own;
+        if (Store.str(ctx, Store.TMDB_KEY).isEmpty() || "lampa".equals(film.optString("src"))) return null;
+        String id = film.optString("tmdb"), media = film.optString("media");
+        if (id.isEmpty()) {
+            String[] f = find(ctx, film.optString("title"), film.optString("year"), film.optString("type"));
+            if (f == null) return null;
+            id = f[0];
+            media = f[1];
+        }
+        String ckey = media + "/" + id;
+        try {
+            JSONObject cache = new JSONObject(Store.prefs(ctx).getString("backdrops", "{}"));
+            if (cache.has(ckey)) return cache.optString(ckey);
+            String key = Store.str(ctx, Store.TMDB_KEY);
+            boolean v3 = key.matches("[0-9a-fA-F]{32}");
+            java.util.Map<String, String> h = new java.util.HashMap<>();
+            if (!v3) h.put("Authorization", "Bearer " + key);
+            Http.Response r = Http.get("https://api.themoviedb.org/3/" + media + "/" + id + (v3 ? "?api_key=" + key : ""), h, 10_000);
+            if (r.code != 200) return null;
+            String path = new JSONObject(r.body).optString("backdrop_path", "");
+            String url = path.isEmpty() || "null".equals(path) ? "" : "https://image.tmdb.org/t/p/w1280" + path;
+            if (cache.length() > 300) cache = new JSONObject();
+            cache.put(ckey, url);
+            Store.prefs(ctx).edit().putString("backdrops", cache.toString()).apply();
+            return url;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     /** The intent that opens that film's card in Lampa. */
     static Intent cardIntent(String[] found) {
         Intent i = new Intent(Intent.ACTION_VIEW,

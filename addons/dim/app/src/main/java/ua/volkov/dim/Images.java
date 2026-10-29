@@ -48,6 +48,28 @@ final class Images {
         });
     }
 
+    interface Got {
+        void got(Bitmap b);
+    }
+
+    /** The picture at url, cached, delivered on the main thread (null if it cannot be loaded). */
+    static void get(String url, Got cb) {
+        if (url == null || url.isEmpty()) {
+            MAIN.post(() -> cb.got(null));
+            return;
+        }
+        Bitmap hit = CACHE.get(url);
+        if (hit != null) {
+            MAIN.post(() -> cb.got(hit));
+            return;
+        }
+        IO.execute(() -> {
+            Bitmap b = fetch(url);
+            if (b != null) CACHE.put(url, b);
+            MAIN.post(() -> cb.got(b));
+        });
+    }
+
     private static Bitmap fetch(String url) {
         try {
             HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();

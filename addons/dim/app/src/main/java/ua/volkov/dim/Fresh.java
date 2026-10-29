@@ -68,6 +68,8 @@ final class Fresh {
         row.put("media", media);
         row.put("title", title);
         row.put("poster", IMG + poster);
+        String back = o.optString("backdrop_path", "");
+        if (!back.isEmpty() && !"null".equals(back)) row.put("backdrop", "https://image.tmdb.org/t/p/w1280" + back);
         row.put("year", date.length() >= 4 ? date.substring(0, 4) : "");
         row.put("src", "fresh");
         row.put("label", "movie".equals(media) ? "Новинка" : "Сериал");

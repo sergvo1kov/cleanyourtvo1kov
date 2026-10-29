@@ -78,6 +78,7 @@ public final class HomeActivity extends Activity {
     private ContentObserver observer;
 
     private ImageView backdrop;
+    private FocusArt focusArt;
     private GradientDrawable ambient;
     private long ambientStart;
 
@@ -341,6 +342,7 @@ public final class HomeActivity extends Activity {
                 light ? new int[]{0x99EEF2F8, 0xCCD3DCEA} : new int[]{0x99080B14, 0xDD080B14}));
         scrim.setAlpha(0f);
         root.addView(scrim, new FrameLayout.LayoutParams(-1, -1));
+        focusArt = new FocusArt(this, root, light);
 
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
@@ -427,7 +429,7 @@ public final class HomeActivity extends Activity {
 
         hero = new FrameLayout(this);
         hero.setClipChildren(false);
-        homePage.addView(hero, lp(-1, 160, 0, 10, 0, 0));
+        homePage.addView(hero, lp(-1, 176, 0, 10, 0, 0));
 
         // favourite apps, in a glass band
         LinearLayout band = new LinearLayout(this);
@@ -470,6 +472,9 @@ public final class HomeActivity extends Activity {
         // hints appear only after the remote rests on something for a moment
         root.getViewTreeObserver().addOnGlobalFocusChangeListener((oldF, newF) -> {
             if (appsShown && newF != null) snapApps(newF);
+            Object film = newF == null ? null : newF.getTag();
+            if (!appsShown && film instanceof JSONObject) focusArt.show((JSONObject) film);
+            else focusArt.hide();
             if (moving >= 0 || qMoving >= 0) return;
             hideHint();
             main.removeCallbacks(dwell);
@@ -926,6 +931,9 @@ public final class HomeActivity extends Activity {
         row.setClipToPadding(false);
         row.setPadding(px(8), px(8), px(8), 0);
         hs.addView(row);
+        // eight posters fill the page width; the rest scroll
+        int page = hero.getWidth() > 0 ? hero.getWidth() : getResources().getDisplayMetrics().widthPixels - px(104);
+        final int pw = Math.max(px(70), (page - 7 * px(14)) / 8), ph = Math.round(pw * 1.48f);
         for (int i = 0; i < list.length(); i++) {
             JSONObject o = list.optJSONObject(i);
             if (o == null) continue;
@@ -965,11 +973,12 @@ public final class HomeActivity extends Activity {
                 frame.addView(b, bl);
             }
             focusRing(frame, 9);
-            card.addView(frame, new LinearLayout.LayoutParams(px(84), px(124)));
+            card.addView(frame, new LinearLayout.LayoutParams(pw, ph));
+            frame.setTag(o);   // the focus backdrop reads the film from here
             TextView t = text(title, 9, txt, false);
             t.setSingleLine(true);
             t.setEllipsize(TextUtils.TruncateAt.END);
-            t.setMaxWidth(px(84));
+            t.setMaxWidth(pw);
             card.addView(t, margins(0, 4, 0, 0));
             row.addView(card, margins(0, 0, 14, 0));
         }
