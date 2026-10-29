@@ -669,7 +669,7 @@ open class RtspHandler(
             "ANNOUNCE"      -> handleAnnounceInternal(request)
             // AirPlay 2 mirroring SETUP carries a binary plist; legacy audio SETUP carries SDP-ish text.
             "SETUP"         -> if (request.isPlistBody()) handleMirrorSetup(request) else handleSetupInternal(request)
-            "RECORD"        -> handleRecordInternal(request)
+            "RECORD"        -> handleRecordInternal(request).also { if (videoTransport != AirPlayVideoTransport.MULTIROOM) onPlaybackRate(1f) }
             "TEARDOWN"      -> handleTeardownInternal(request)
             "GET_PARAMETER" -> handleGetParameter(request)
             "SET_PARAMETER" -> handleSetParameter(request)
@@ -1586,6 +1586,7 @@ open class RtspHandler(
                 // now playing and the track end.
                 val parts = body.substringAfter(":").trim().split("/").mapNotNull { it.trim().toLongOrNull() }
                 if (parts.size == 3) onProgress(parts[0], parts[1], parts[2])
+                if (videoTransport != AirPlayVideoTransport.MULTIROOM) onPlaybackRate(1f)   // Flick AirPlay: progress comes again when playback resumes
                 if (isMultiRoom) Logger.d("MR: SET_PARAMETER progress=${parts.joinToString("/")}")
                 else Logger.d("SET_PARAMETER progress=${parts.joinToString("/")}")
             }
@@ -1654,6 +1655,9 @@ open class RtspHandler(
     /** Handles FLUSH — macOS requests we discard buffered media data (seek/pause). */
     private fun handleFlush(@Suppress("UNUSED_PARAMETER") request: RtspRequest): RtspResponse {
         multiroomLocal.get()?.flushRealtime()
+        // Flick AirPlay: a classic AirPlay sender pauses with FLUSH (there is no rate message), so the
+        // track's clock stops here; the next "progress" or RECORD starts it again.
+        if (videoTransport != AirPlayVideoTransport.MULTIROOM) onPlaybackRate(0f)
         return RtspResponse(statusCode = 200, statusMessage = "OK")
     }
 

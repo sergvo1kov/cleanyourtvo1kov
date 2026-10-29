@@ -154,6 +154,7 @@ public final class HomeActivity extends Activity {
     private ImageView npArt;
     private TextView npKicker, npTitle, npArtist, npPos, npDur, npOpen;
     private ImageView npPlay;
+    private Equalizer npEq;
     private View npFill;
     private NowPlaying.Track track;
     // read off the main thread: a session's cover crosses the binder on every read, which stalled the UI
@@ -805,7 +806,7 @@ public final class HomeActivity extends Activity {
         }
         switch (mode) {
             case "alert": setIfChanged(caption, "Воздушная тревога  ·  " + Alerts.label(p.getString(Store.ALERT_SCOPE, Alerts.RAION))); updateAlertHero(); break;
-            case "music": setIfChanged(caption, track.app + "  ·  Сейчас играет"); updateMusicHero(); break;
+            case "music": setIfChanged(caption, appName(track) + "  ·  Сейчас играет"); updateMusicHero(); break;
             case "must": setIfChanged(caption, ""); break;
             default: setIfChanged(caption, "Одесса  ·  сейчас");
         }
@@ -849,7 +850,13 @@ public final class HomeActivity extends Activity {
         row.addView(info, il);
         npKicker = text("", 10, 0xFFFF4E45, true);
         npKicker.setLetterSpacing(0.06f);
-        info.addView(npKicker);
+        LinearLayout kick = new LinearLayout(this);
+        kick.setGravity(Gravity.CENTER_VERTICAL);
+        npEq = new Equalizer(this);
+        npEq.setColour(0xFFFF4E45);
+        kick.addView(npEq, lp(13, 11, 0, 0, 8, 1));
+        kick.addView(npKicker);
+        info.addView(kick);
         npTitle = text("", 24, Color.WHITE, true);
         npTitle.setSingleLine(true);
         npTitle.setEllipsize(TextUtils.TruncateAt.END);
@@ -898,11 +905,12 @@ public final class HomeActivity extends Activity {
     private void updateMusicHero() {
         NowPlaying.Track t = track;
         if (t == null) return;
-        npKicker.setText(t.app.toUpperCase(new Locale("ru")) + (t.playing ? "     ●  СЕЙЧАС ИГРАЕТ" : "     НА ПАУЗЕ"));
+        npKicker.setText(appName(t).toUpperCase(new Locale("ru")) + (t.playing ? "   ·   СЕЙЧАС ИГРАЕТ" : "   ·   НА ПАУЗЕ"));
+        npEq.setPlaying(t.playing);
         npTitle.setText(t.title);
         npArtist.setText(t.artist);
         npPlay.setImageResource(t.playing ? R.drawable.np_pause : R.drawable.np_play);
-        npOpen.setText("Открыть " + t.app);
+        npOpen.setText("Открыть");
         String key = t.title + "|" + t.artist;
         if (!key.equals(npArt.getTag())) {
             npArt.setTag(key);
@@ -940,6 +948,7 @@ public final class HomeActivity extends Activity {
         npFillBg.setColor(c[2]);
         npPlayBg.setColor(c[2]);
         npKicker.setTextColor(c[3]);
+        npEq.setColour(c[3]);
     }
 
     /** {dark, mid, accent, kicker} from a cover: its most colourful hue, or a calm green without one. */
@@ -1001,6 +1010,11 @@ public final class HomeActivity extends Activity {
             v.animate().scaleX(has ? 1.12f : 1f).scaleY(has ? 1.12f : 1f).setDuration(140).start();
         });
         return f;
+    }
+
+    /** Flick AirPlay is just "AirPlay" here. */
+    private static String appName(NowPlaying.Track t) {
+        return AIRPLAY.equals(t.pkg) ? "AirPlay" : t.app;
     }
 
     private void media(int what) {

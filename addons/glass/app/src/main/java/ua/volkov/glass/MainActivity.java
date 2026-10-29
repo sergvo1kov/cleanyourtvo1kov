@@ -222,6 +222,12 @@ public final class MainActivity extends Activity {
         return track;
     }
 
+    /** From the top capsules Down goes to the film, or to the dock when the film cannot take focus. */
+    private boolean focusDown() {
+        if (stageFocus.isFocusable() && stageFocus.getVisibility() == View.VISIBLE && stageFocus.requestFocus()) return true;
+        return dock.getChildCount() > 0 && dock.getChildAt(0).requestFocus();
+    }
+
     /** Now Playing opens the app that plays: Flick AirPlay for the phone, or the music app itself. */
     void openNowPlaying() {
         NowPlaying.Track t = track;
@@ -256,11 +262,12 @@ public final class MainActivity extends Activity {
         NowPlaying.Track t = track;
         boolean show = t != null;
         if (show != (npCap.getVisibility() == View.VISIBLE)) {
+            // no alpha animation here: the focus zoom shares the view's animator and used to cancel the
+            // fade halfway, leaving an invisible capsule that held the focus
+            boolean had = npCap.hasFocus();
+            npCap.setAlpha(1f);
             npCap.setVisibility(show ? View.VISIBLE : View.GONE);
-            if (show) {
-                npCap.setAlpha(0f);
-                npCap.animate().alpha(1f).setDuration(300).start();
-            }
+            if (!show && had && dock.getChildCount() > 0) dock.getChildAt(0).requestFocus();
         }
         if (!show) return;
         String txt = (t.playing ? "" : "❚❚  ") + t.title + (t.artist.isEmpty() ? "" : "  ·  " + t.artist);
@@ -437,6 +444,17 @@ public final class MainActivity extends Activity {
         npText.setMaxWidth(ui.px(380));
         npCap.addView(npText);
         capsule(npCap, 18, v -> openNowPlaying());
+        View.OnKeyListener capDown = (v, code, e) -> e.getAction() == KeyEvent.ACTION_DOWN
+                && code == KeyEvent.KEYCODE_DPAD_DOWN && focusDown();
+        weatherCap.setOnKeyListener(capDown);
+        statusCap.setOnKeyListener(capDown);
+        npCap.setOnKeyListener((v, code, e) -> {
+            if (e.getAction() != KeyEvent.ACTION_DOWN) return false;
+            if (code == KeyEvent.KEYCODE_DPAD_DOWN) return focusDown();
+            if (code == KeyEvent.KEYCODE_DPAD_LEFT) return weatherCap.requestFocus();
+            if (code == KeyEvent.KEYCODE_DPAD_RIGHT) return statusCap.requestFocus();
+            return false;
+        });
         npCap.setVisibility(View.GONE);
         root.addView(npCap, ui.flp(-2, 36, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 35, 0, 0));
 

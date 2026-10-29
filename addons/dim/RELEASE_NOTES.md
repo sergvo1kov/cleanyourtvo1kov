@@ -1,4 +1,8 @@
-**Flick TV 3.1** — a home screen for Android TV / Google TV by Serhii Volkov (@sergvo1kov), built on CleanYourTV.
+**Flick TV 3.2** — a home screen for Android TV / Google TV by Serhii Volkov (@sergvo1kov), built on CleanYourTV.
+
+**New in 3.2**
+- Now Playing has a small equalizer that moves while music plays and settles on pause; AirPlay is named just "AirPlay", and its button reads "Открыть".
+- The focused play button is no longer cut off.
 
 **New in 3.1**
 - Now Playing takes the cover's colours (card, progress line, play button) and has drawn, centred buttons.
