@@ -49,8 +49,10 @@ final class QuickPanel {
     private LinearLayout sheet;
     private TextView netSub, btSub, picSub, volPct, saverSub, timeoutSub;
     private View volFill;
+    private android.widget.ImageView volIcon;
     private LinearLayout volBar;
 
+    private int netIcon = R.drawable.qp_wifi;
     private static final int[] TIMEOUTS_MIN = {5, 10, 15, 30, 60};
 
     QuickPanel(Activity a, FrameLayout root, ViewGroup behind, boolean light, Host host) {
@@ -63,7 +65,7 @@ final class QuickPanel {
         txt = light ? 0xFF0D1220 : 0xFFFFFFFF;
         sub = light ? 0x990D1220 : 0x99FFFFFF;
         tile = light ? 0x14000000 : 0x14FFFFFF;
-        tileFocus = light ? 0xFFFFFFFF : 0x3DFFFFFF;
+        tileFocus = light ? 0xFFFFFFFF : 0x30FFFFFF;
     }
 
     boolean isOpen() {
@@ -118,20 +120,20 @@ final class QuickPanel {
         s.addView(text("Настройки", 17, txt, true), margins(4, 0, 0, 10));
 
         LinearLayout r1 = row();
-        LinearLayout net = tile("⌁", "Сеть", v -> settings(new Intent(Settings.ACTION_WIFI_SETTINGS)));
+        LinearLayout net = tile(R.drawable.qp_wifi, "Сеть", v -> settings(new Intent(Settings.ACTION_WIFI_SETTINGS)));
         netSub = sub(net);
         r1.addView(net, half(true));
-        LinearLayout bt = tile("ᛒ", "Bluetooth", v -> openBluetooth());
+        LinearLayout bt = tile(R.drawable.qp_bt, "Bluetooth", v -> openBluetooth());
         btSub = sub(bt);
         r1.addView(bt, half(false));
         s.addView(r1);
 
         LinearLayout r2 = row();
-        LinearLayout pic = tile("◐", "Картинка", v -> openPicture());
+        LinearLayout pic = tile(R.drawable.qp_picture, "Картинка", v -> openPicture());
         picSub = sub(pic);
         r2.addView(pic, half(true));
-        LinearLayout off = tile("⏻", "Выключить", v -> standby());
-        sub(off).setText("Режим ожидания");
+        LinearLayout off = tile(R.drawable.qp_power, "Выключить", v -> standby());
+        sub(off).setText("Как кнопка питания");
         r2.addView(off, half(false));
         s.addView(r2, margins(0, 8, 0, 0));
 
@@ -141,27 +143,27 @@ final class QuickPanel {
 
         s.addView(text("ЗАСТАВКА", 10, sub, true), margins(4, 14, 0, 6));
         LinearLayout r3 = row();
-        LinearLayout saver = tile("✦", "Запустить", v -> startSaver());
+        LinearLayout saver = tile(R.drawable.qp_play, "Запустить", v -> startSaver());
         saverSub = sub(saver);
         r3.addView(saver, half(true));
-        LinearLayout timeout = tile("◷", "Таймер", v -> nextTimeout());
+        LinearLayout timeout = tile(R.drawable.qp_timer, "Таймер", v -> nextTimeout());
         timeoutSub = sub(timeout);
         r3.addView(timeout, half(false));
         s.addView(r3);
 
-        LinearLayout stock = tile("⌂", "Вернуться на основной экран", v -> stockHome());
+        LinearLayout stock = tile(R.drawable.qp_home, "Вернуться на основной экран", v -> stockHome());
         sub(stock).setText("Стандартный лаунчер Google TV");
         s.addView(stock, margins(0, 8, 0, 0));
         stock.getLayoutParams().width = -1;
 
         LinearLayout r4 = row();
-        LinearLayout app = tile("✎", "Flick TV", v -> {
+        LinearLayout app = tile(R.drawable.qp_tv, "Flick TV", v -> {
             close();
             host.openAppSettings();
         });
         sub(app).setText("Тема, Must, Lampa, ключи");
         r4.addView(app, half(true));
-        LinearLayout all = tile("⚙", "Все настройки ›", v -> settings(new Intent(Settings.ACTION_SETTINGS)));
+        LinearLayout all = tile(R.drawable.qp_gear, "Все настройки ›", v -> settings(new Intent(Settings.ACTION_SETTINGS)));
         sub(all).setText("Телевизор");
         r4.addView(all, half(false));
         s.addView(r4, margins(0, 8, 0, 0));
@@ -171,26 +173,28 @@ final class QuickPanel {
     private LinearLayout volume() {
         LinearLayout v = new LinearLayout(a);
         v.setGravity(Gravity.CENTER_VERTICAL);
-        v.setPadding(px(12), px(10), px(12), px(10));
-        GradientDrawable g = round(tile, 14);
-        v.setBackground(g);
-        v.setFocusable(true);
-        v.setClickable(true);
-        v.addView(text("🔈", 13, txt, false), margins(0, 0, 10, 0));
-        volBar = new LinearLayout(a);
-        volBar.setBackground(round(light ? 0x1F000000 : 0x26FFFFFF, 3));
-        volFill = new View(a);
-        volFill.setBackground(round(txt, 3));
-        volBar.addView(volFill, new LinearLayout.LayoutParams(0, px(6)));
-        v.addView(volBar, new LinearLayout.LayoutParams(0, px(6), 1));
+        v.setPadding(px(12), px(9), px(14), px(9));
+        softFocus(v, null);
+        volIcon = iconView(R.drawable.qp_volume);
+        v.addView(volIcon, new LinearLayout.LayoutParams(px(28), px(28)));
+        LinearLayout col = new LinearLayout(a);
+        col.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout head = new LinearLayout(a);
+        head.addView(text("Громкость", 11.5f, txt, true), new LinearLayout.LayoutParams(0, -2, 1));
         volPct = text("", 11, sub, false);
-        volPct.setMinWidth(px(38));
-        volPct.setGravity(Gravity.END);
-        v.addView(volPct);
-        v.setOnFocusChangeListener((view, has) -> {
-            g.setColor(has ? tileFocus : tile);
-            view.animate().scaleX(has ? 1.03f : 1f).scaleY(has ? 1.03f : 1f).setDuration(140).start();
-        });
+        head.addView(volPct);
+        col.addView(head);
+        volBar = new LinearLayout(a);
+        volBar.setBackground(round(light ? 0x1F000000 : 0x2EFFFFFF, 4));
+        volFill = new View(a);
+        volFill.setBackground(round(txt, 4));
+        volBar.addView(volFill, new LinearLayout.LayoutParams(0, px(8)));
+        LinearLayout.LayoutParams bl = new LinearLayout.LayoutParams(-1, px(8));
+        bl.setMargins(0, px(5), 0, 0);
+        col.addView(volBar, bl);
+        LinearLayout.LayoutParams cl = new LinearLayout.LayoutParams(0, -2, 1);
+        cl.setMargins(px(9), 0, 0, 0);
+        v.addView(col, cl);
         v.setOnKeyListener((view, code, e) -> {
             if (e.getAction() != KeyEvent.ACTION_DOWN) return false;
             if (code == KeyEvent.KEYCODE_DPAD_LEFT || code == KeyEvent.KEYCODE_DPAD_RIGHT) {
@@ -208,24 +212,12 @@ final class QuickPanel {
         return v;
     }
 
-    private LinearLayout tile(String icon, String title, View.OnClickListener onClick) {
+    private LinearLayout tile(int icon, String title, View.OnClickListener onClick) {
         LinearLayout t = new LinearLayout(a);
         t.setGravity(Gravity.CENTER_VERTICAL);
         t.setPadding(px(12), px(9), px(10), px(9));
-        GradientDrawable g = round(tile, 14);
-        t.setBackground(g);
-        t.setFocusable(true);
-        t.setClickable(true);
-        t.setOnClickListener(onClick);
-        t.setOnFocusChangeListener((view, has) -> {
-            g.setColor(has ? tileFocus : tile);
-            view.animate().scaleX(has ? 1.04f : 1f).scaleY(has ? 1.04f : 1f).translationZ(has ? px(6) : 0)
-                    .setDuration(140).start();
-        });
-        TextView i = text(icon, 14, txt, false);
-        i.setGravity(Gravity.CENTER);
-        i.setBackground(round(light ? 0x14000000 : 0x1FFFFFFF, 13));
-        t.addView(i, new LinearLayout.LayoutParams(px(26), px(26)));
+        softFocus(t, onClick);
+        t.addView(iconView(icon), new LinearLayout.LayoutParams(px(28), px(28)));
         LinearLayout words = new LinearLayout(a);
         words.setOrientation(LinearLayout.VERTICAL);
         TextView name = text(title, 11.5f, txt, true);
@@ -242,6 +234,29 @@ final class QuickPanel {
         return t;
     }
 
+    /** A soft focus: the tile brightens and grows a little, with no shadow edge around it. */
+    private void softFocus(LinearLayout t, View.OnClickListener onClick) {
+        GradientDrawable g = round(tile, 14);
+        t.setBackground(g);
+        t.setFocusable(true);
+        t.setClickable(true);
+        if (onClick != null) t.setOnClickListener(onClick);
+        t.setOnFocusChangeListener((view, has) -> {
+            g.setColor(has ? tileFocus : tile);
+            view.animate().scaleX(has ? 1.025f : 1f).scaleY(has ? 1.025f : 1f).setDuration(160).start();
+        });
+    }
+
+    private android.widget.ImageView iconView(int res) {
+        android.widget.ImageView i = new android.widget.ImageView(a);
+        i.setImageResource(res);
+        i.setImageTintList(android.content.res.ColorStateList.valueOf(txt));
+        i.setScaleType(android.widget.ImageView.ScaleType.CENTER_INSIDE);
+        i.setPadding(px(6), px(6), px(6), px(6));
+        i.setBackground(round(light ? 0x14000000 : 0x1FFFFFFF, 14));
+        return i;
+    }
+
     private static TextView sub(LinearLayout tile) {
         return (TextView) ((LinearLayout) tile.getChildAt(1)).getChildAt(1);
     }
@@ -250,6 +265,7 @@ final class QuickPanel {
 
     private void refresh() {
         netSub.setText(network());
+        ((android.widget.ImageView) ((LinearLayout) netSub.getParent().getParent()).getChildAt(0)).setImageResource(netIcon);
         BluetoothAdapter b = BluetoothAdapter.getDefaultAdapter();
         btSub.setText(b == null ? "нет" : b.isEnabled() ? "Включён" : "Выключен");
         picSub.setText(pictureMode(a));
@@ -264,7 +280,10 @@ final class QuickPanel {
             Network n = cm.getActiveNetwork();
             NetworkCapabilities c = n == null ? null : cm.getNetworkCapabilities(n);
             if (c == null) return "Нет подключения";
-            if (c.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) return "Ethernet · подключено";
+            if (c.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
+                netIcon = R.drawable.qp_ethernet;
+                return "Ethernet · подключено";
+            }
             if (c.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) return "Wi‑Fi · подключено";
             return "Подключено";
         } catch (RuntimeException e) {
@@ -321,6 +340,7 @@ final class QuickPanel {
         boolean muted = am.isStreamMute(AudioManager.STREAM_MUSIC);
         int pct = Math.round(cur * 100f / max);
         volPct.setText(muted ? "без звука" : pct + "%");
+        volIcon.setImageResource(muted || cur == 0 ? R.drawable.qp_mute : R.drawable.qp_volume);
         volBar.post(() -> {
             ViewGroup.LayoutParams lp = volFill.getLayoutParams();
             lp.width = muted ? 0 : Math.round(volBar.getWidth() * cur / (float) max);
