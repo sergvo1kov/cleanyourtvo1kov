@@ -827,7 +827,12 @@ public final class HomeActivity extends Activity {
         FrameLayout c = heroCard(new int[]{0xFF0A1410, 0xFF13261E, 0xFF0C1813});
         npCard = (GradientDrawable) c.getBackground();
         npPaletteKey = null;
+        // a focused button grows with a ring: nothing on the way up may clip it
+        c.setClipChildren(false);
+        c.setClipToPadding(false);
         LinearLayout row = new LinearLayout(this);
+        row.setClipChildren(false);
+        row.setClipToPadding(false);
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(px(17), px(17), px(22), px(17));
         npArt = new ImageView(this);
@@ -837,6 +842,8 @@ public final class HomeActivity extends Activity {
         row.addView(npArt, new LinearLayout.LayoutParams(px(134), px(134)));
         LinearLayout info = new LinearLayout(this);
         info.setOrientation(LinearLayout.VERTICAL);
+        info.setClipChildren(false);
+        info.setClipToPadding(false);
         LinearLayout.LayoutParams il = new LinearLayout.LayoutParams(0, -2, 1);
         il.setMargins(px(22), 0, 0, 0);
         row.addView(info, il);
