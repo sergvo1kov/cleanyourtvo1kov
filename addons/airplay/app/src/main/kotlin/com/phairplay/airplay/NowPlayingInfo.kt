@@ -80,7 +80,7 @@ object DmapParser {
     private const val ARTIST_TAG = "asar"
     private const val ALBUM_TAG = "asal"
 
-    /** [state] is DACP's player state from the `caps` tag (4 playing, 3 paused, 2 stopped), when sent. */
+    /** [state] from the `caps` tag, when sent: an iPhone sends 1 while playing and 2 when paused. */
     data class Metadata(val title: String?, val artist: String?, val album: String?, val state: Int? = null,
                         val tags: String = "") {
         val isEmpty: Boolean get() = title == null && artist == null && album == null

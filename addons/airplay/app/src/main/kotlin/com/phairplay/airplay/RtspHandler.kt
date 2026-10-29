@@ -1604,7 +1604,7 @@ open class RtspHandler(
                 else Logger.i("SET_PARAMETER now-playing: title='${meta.title}' artist='${meta.artist}' album='${meta.album}'")
                 Logger.i("now-playing tags: ${meta.tags}")
                 // Flick AirPlay: the sender says at once whether it plays or paused (DACP player state)
-                meta.state?.let { st -> if (videoTransport != AirPlayVideoTransport.MULTIROOM) onPlaybackRate(if (st == 4) 1f else 0f) }
+                meta.state?.let { st -> if (videoTransport != AirPlayVideoTransport.MULTIROOM) onPlaybackRate(if (st == 1 || st == 4) 1f else 0f) }
             }
             else -> {
                 if (isMultiRoom) Logger.d("MR: SET_PARAMETER (${request.bodyBytes.size}B, $contentType, unhandled)")
