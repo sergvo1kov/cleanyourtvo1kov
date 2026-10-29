@@ -86,11 +86,19 @@ final class Fresh {
      */
     static JSONArray mix(JSONArray lampa, JSONArray must, JSONArray fresh) {
         JSONArray out = new JSONArray();
-        for (int i = 0; i < lampa.length() && out.length() < 8; i++) out.put(lampa.opt(i));
-        int m = 0, f = 0;
-        while (out.length() < 36 && (m < must.length() || f < fresh.length())) {
+        java.util.List<Object> recs = new java.util.ArrayList<>();
+        for (int i = 0; i < lampa.length(); i++) {
+            JSONObject o = lampa.optJSONObject(i);
+            if (o == null) continue;
+            if ("Продолжить".equals(o.optString("label")) && out.length() < 4) out.put(o);   // continue watching first
+            else recs.add(o);
+        }
+        // then Must, Must, a fresh title, one of Lampa's own, and again
+        int m = 0, f = 0, r = 0;
+        while (out.length() < 40 && (m < must.length() || f < fresh.length() || r < recs.size())) {
             for (int k = 0; k < 2 && m < must.length(); k++) out.put(must.opt(m++));
             if (f < fresh.length()) out.put(fresh.opt(f++));
+            if (r < recs.size()) out.put(recs.get(r++));
         }
         return out;
     }

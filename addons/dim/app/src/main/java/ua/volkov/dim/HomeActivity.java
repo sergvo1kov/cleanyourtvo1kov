@@ -259,6 +259,7 @@ public final class HomeActivity extends Activity {
         // setup over ADB: am start -n ua.volkov.dim/.HomeActivity --es must_nick <nick>
         String nick = getIntent() == null ? null : getIntent().getStringExtra("must_nick");
         if (nick != null) Store.prefs(this).edit().putString(Store.MUST_NICK, nick.trim()).putLong(Store.MUST_AT, 0).apply();
+        Images.init(this);
         loadFavs();
         setContentView(build());
         askTvListings();
@@ -942,7 +943,7 @@ public final class HomeActivity extends Activity {
             final String year = o.optString("year");
             final String type = o.optString("type");
             final String tmdb = o.optString("tmdb"), media = o.optString("media");
-            final String badge = "lampa".equals(o.optString("src")) ? "Lampa" : o.optString("label");
+            final String badge = o.optString("label");
             LinearLayout card = new LinearLayout(this);
             card.setOrientation(LinearLayout.VERTICAL);
             FrameLayout frame = new FrameLayout(this);
@@ -967,7 +968,7 @@ public final class HomeActivity extends Activity {
             if (!badge.isEmpty()) {
                 TextView b = text(badge, 7.5f, 0xFFFFFFFF, true);
                 b.setPadding(px(5), px(1.5f), px(5), px(2));
-                b.setBackground(round("Lampa".equals(badge) ? 0xE62E7DFF : 0xE6E5484D, 5, 0));
+                b.setBackground(round("lampa".equals(o.optString("src")) ? 0xE62E7DFF : 0xE6E5484D, 5, 0));
                 FrameLayout.LayoutParams bl = new FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.START);
                 bl.setMargins(px(5), px(5), 0, 0);
                 frame.addView(b, bl);

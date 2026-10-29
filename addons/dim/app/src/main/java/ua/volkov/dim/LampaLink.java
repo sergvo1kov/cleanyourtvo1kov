@@ -134,7 +134,7 @@ final class LampaLink {
     static String backdrop(Context ctx, JSONObject film) {
         String own = film.optString("backdrop");
         if (!own.isEmpty()) return own;
-        if (Store.str(ctx, Store.TMDB_KEY).isEmpty() || "lampa".equals(film.optString("src"))) return null;
+        if (Store.str(ctx, Store.TMDB_KEY).isEmpty() || "lampa".equals(film.optString("src"))) return null;   // poster instead
         String id = film.optString("tmdb"), media = film.optString("media");
         if (id.isEmpty()) {
             String[] f = find(ctx, film.optString("title"), film.optString("year"), film.optString("type"));

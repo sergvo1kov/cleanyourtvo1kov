@@ -39,7 +39,9 @@ final class LampaCards {
     static JSONArray read(Context ctx) {
         JSONArray out = new JSONArray();
         StringBuilder dbg = new StringBuilder();
+        java.util.Set<String> seen = new java.util.HashSet<>();
         for (String table : new String[]{"watch_next_program", "preview_program"}) {
+            boolean next = table.startsWith("watch");
             Uri uri = Uri.parse("content://android.media.tv/" + table);
             try (Cursor c = ctx.getContentResolver().query(uri, null, null, null, null)) {
                 if (c == null) {
@@ -52,18 +54,28 @@ final class LampaCards {
                 int poster = c.getColumnIndex("poster_art_uri");
                 int thumb = c.getColumnIndex("thumbnail_uri");
                 int intent = c.getColumnIndex("intent_uri");
-                while (c.moveToNext() && out.length() < 24) {
+                int browsable = c.getColumnIndex("browsable");
+                int taken = 0;
+                while (c.moveToNext() && out.length() < 40) {
                     String p = pkg >= 0 ? c.getString(pkg) : "";
-                    dbg.append("  ").append(p).append(" | ").append(title >= 0 ? c.getString(title) : "").append('\n');
                     if (!PKG.equals(p) || title < 0) continue;
+                    if (browsable >= 0 && c.getInt(browsable) == 0) continue;
+                    String t = c.getString(title);
+                    if (t == null || t.isEmpty() || !seen.add(t.trim().toLowerCase(java.util.Locale.ROOT))) continue;
+                    if (next && taken >= 6) continue;   // a few to continue, the rest is Lampa's recommendations
+                    taken++;
                     JSONObject o = new JSONObject();
-                    o.put("title", c.getString(title));
+                    o.put("title", t);
                     String art = poster >= 0 ? c.getString(poster) : null;
-                    if ((art == null || art.isEmpty()) && thumb >= 0) art = c.getString(thumb);
-                    o.put("poster", art == null ? "" : art);
+                    String wide = thumb >= 0 ? c.getString(thumb) : null;
+                    if (art == null || art.isEmpty()) art = wide;
+                    o.put("poster", direct(art));
+                    if (wide != null && !wide.isEmpty()) o.put("backdrop", direct(wide));
                     o.put("intent", intent >= 0 && c.getString(intent) != null ? c.getString(intent) : "");
                     o.put("src", "lampa");
+                    o.put("label", next ? "Продолжить" : "Lampa");
                     out.put(o);
+                    dbg.append("  ").append(next ? "next " : "rec  ").append(t).append(" | ").append(art).append('\n');
                 }
             } catch (Exception e) {
                 dbg.append(table).append(": ").append(e).append('\n');
@@ -80,6 +92,18 @@ final class LampaCards {
             // debugging aid only
         }
         return out;
+    }
+
+    /**
+     * Lampa takes pictures through image proxies; a TMDB path goes straight to TMDB's own server, over
+     * HTTPS (this app allows no cleartext traffic except to the TV itself).
+     */
+    static String direct(String url) {
+        if (url == null) return "";
+        int i = url.indexOf("/t/p/");
+        if (i > 0 && url.startsWith("http")) return "https://image.tmdb.org" + url.substring(i);
+        if (url.startsWith("http://")) return "https://" + url.substring(7);
+        return url;
     }
 
     /** Lampa first, then Must, one by one, so both sources share the row. */

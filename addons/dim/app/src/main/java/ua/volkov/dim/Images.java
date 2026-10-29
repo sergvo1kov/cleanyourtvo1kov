@@ -70,7 +70,24 @@ final class Images {
         });
     }
 
+    private static android.content.Context app;
+
+    /** Lets content:// and android.resource:// pictures (TV cards) load through the app's resolver. */
+    static void init(android.content.Context ctx) {
+        app = ctx.getApplicationContext();
+    }
+
     private static Bitmap fetch(String url) {
+        if (!url.startsWith("http")) {
+            if (app == null) return null;
+            try (InputStream in = app.getContentResolver().openInputStream(android.net.Uri.parse(url))) {
+                BitmapFactory.Options o = new BitmapFactory.Options();
+                o.inPreferredConfig = Bitmap.Config.RGB_565;
+                return in == null ? null : BitmapFactory.decodeStream(in, null, o);
+            } catch (Exception e) {
+                return null;
+            }
+        }
         try {
             HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
             c.setConnectTimeout(10_000);

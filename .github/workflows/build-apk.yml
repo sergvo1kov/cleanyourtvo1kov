@@ -78,11 +78,16 @@ jobs:
         run: |
           ver=$(sed -n 's/.*versionName "\(.*\)".*/\1/p' addons/dim/app/build.gradle)
           [ -n "$ver" ] || exit 0
-          if gh release view "v$ver" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then echo "v$ver exists"; exit 0; fi
           mkdir -p "rel/Flick-TV-$ver"
           cp addons/dim/app/build/outputs/apk/release/app-release.apk "rel/Flick-TV-$ver/flick-tv-$ver.apk"
           cp addons/dim/install/install.ps1 addons/dim/install/УСТАНОВИТЬ.bat addons/dim/install/ИНСТРУКЦИЯ.txt "rel/Flick-TV-$ver/"
           sed -i "s/flick-tv-2.0.apk/flick-tv-$ver.apk/" "rel/Flick-TV-$ver/install.ps1"
           (cd rel && zip -qr "Flick-TV-$ver.zip" "Flick-TV-$ver")
-          gh release create "v$ver" "rel/Flick-TV-$ver.zip" "rel/Flick-TV-$ver/flick-tv-$ver.apk" -R "$GITHUB_REPOSITORY" \
-            --target "$GITHUB_SHA" --title "Flick TV $ver" --notes-file addons/dim/RELEASE_NOTES.md
+          # a version's release is kept up to date with the newest build of that version
+          if gh release view "v$ver" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "v$ver" "rel/Flick-TV-$ver.zip" "rel/Flick-TV-$ver/flick-tv-$ver.apk" --clobber -R "$GITHUB_REPOSITORY"
+            gh release edit "v$ver" --notes-file addons/dim/RELEASE_NOTES.md -R "$GITHUB_REPOSITORY"
+          else
+            gh release create "v$ver" "rel/Flick-TV-$ver.zip" "rel/Flick-TV-$ver/flick-tv-$ver.apk" -R "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" --title "Flick TV $ver" --notes-file addons/dim/RELEASE_NOTES.md
+          fi
