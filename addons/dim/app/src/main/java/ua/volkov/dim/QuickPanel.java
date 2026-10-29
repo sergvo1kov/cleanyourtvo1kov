@@ -126,7 +126,7 @@ final class QuickPanel {
         LinearLayout bt = tile(R.drawable.qp_bt, "Bluetooth", v -> openBluetooth());
         btSub = sub(bt);
         r1.addView(bt, half(false));
-        s.addView(r1);
+        s.addView(r1, full(0));
 
         LinearLayout r2 = row();
         LinearLayout pic = tile(R.drawable.qp_picture, "Картинка", v -> openPicture());
@@ -135,11 +135,9 @@ final class QuickPanel {
         LinearLayout off = tile(R.drawable.qp_power, "Выключить", v -> standby());
         sub(off).setText("Как кнопка питания");
         r2.addView(off, half(false));
-        s.addView(r2, margins(0, 8, 0, 0));
+        s.addView(r2, full(8));
 
-        LinearLayout.LayoutParams vl = margins(0, 8, 0, 0);
-        vl.width = -1;
-        s.addView(volume(), vl);
+        s.addView(volume(), full(8));
 
         s.addView(text("ЗАСТАВКА", 10, sub, true), margins(4, 14, 0, 6));
         LinearLayout r3 = row();
@@ -149,12 +147,11 @@ final class QuickPanel {
         LinearLayout timeout = tile(R.drawable.qp_timer, "Таймер", v -> nextTimeout());
         timeoutSub = sub(timeout);
         r3.addView(timeout, half(false));
-        s.addView(r3);
+        s.addView(r3, full(0));
 
         LinearLayout stock = tile(R.drawable.qp_home, "Вернуться на основной экран", v -> stockHome());
         sub(stock).setText("Стандартный лаунчер Google TV");
-        s.addView(stock, margins(0, 8, 0, 0));
-        stock.getLayoutParams().width = -1;
+        s.addView(stock, full(8));
 
         LinearLayout r4 = row();
         LinearLayout app = tile(R.drawable.qp_tv, "Flick TV", v -> {
@@ -166,7 +163,7 @@ final class QuickPanel {
         LinearLayout all = tile(R.drawable.qp_gear, "Все настройки ›", v -> settings(new Intent(Settings.ACTION_SETTINGS)));
         sub(all).setText("Телевизор");
         r4.addView(all, half(false));
-        s.addView(r4, margins(0, 8, 0, 0));
+        s.addView(r4, full(8));
         return s;
     }
 
@@ -432,6 +429,13 @@ final class QuickPanel {
         LinearLayout r = new LinearLayout(a);
         r.setClipChildren(false);
         return r;
+    }
+
+    /** Every row spans the sheet, so the two columns line up from top to bottom. */
+    private LinearLayout.LayoutParams full(int topDp) {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+        lp.setMargins(0, px(topDp), 0, 0);
+        return lp;
     }
 
     private LinearLayout.LayoutParams half(boolean left) {
