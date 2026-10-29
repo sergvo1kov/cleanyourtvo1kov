@@ -39,6 +39,12 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew --no-daemon lintRelease assembleRelease
+      - name: Lint summary as an annotation
+        run: |
+          f=addons/dim/app/build/reports/lint-results.txt
+          [ -f "$f" ] || exit 0
+          body=$(grep -E ": (Error|Warning):" "$f" | sed -E 's#^.*/src/main/##' | head -80 | sed ':a;N;$!ba;s/\n/%0A/g')
+          echo "::notice title=Dim lint::$(tail -1 "$f")%0A$body"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: dim-lint
