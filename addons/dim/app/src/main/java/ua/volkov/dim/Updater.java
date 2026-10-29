@@ -35,7 +35,7 @@ import java.util.concurrent.Executors;
  * Nothing runs in the background: a check happens when asked, or at most every 12 hours when Home opens.
  */
 final class Updater {
-    private static final String RELEASES = "https://api.github.com/repos/sergvo1kov/cleanyourtvo1kov/releases?per_page=40";
+    private static final String RELEASES = "https://api.github.com/repos/sergvo1kov/cleanyourtvo1kov/releases?per_page=100";
     private static final String ACTION = "ua.volkov.dim.UPDATE_STATUS";
     private static final String CHECKED_AT = "update_checked_at";
     private static final long EVERY_MS = 12 * 3600_000L;
