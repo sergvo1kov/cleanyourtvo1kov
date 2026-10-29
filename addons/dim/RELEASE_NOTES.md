@@ -1,4 +1,7 @@
-**Flick TV 3.2** — a home screen for Android TV / Google TV by Serhii Volkov (@sergvo1kov), built on CleanYourTV.
+**Flick TV 3.3** — a home screen for Android TV / Google TV by Serhii Volkov (@sergvo1kov), built on CleanYourTV.
+
+**New in 3.3**
+- Flick TV is the one home screen again: the second home screen and everything that served it (its data provider, the Home switch) are gone.
 
 **New in 3.2**
 - Now Playing has a small equalizer that moves while music plays and settles on pause; AirPlay is named just "AirPlay", and its button reads "Открыть".
@@ -7,20 +10,10 @@
 **New in 3.1**
 - Now Playing takes the cover's colours (card, progress line, play button) and has drawn, centred buttons.
 - Now Playing is read off the main thread, so the screen no longer stalls while music plays.
-- The second home screen is now called Glass TV.
 
 **New in 3.0: AirPlay**
 - An AirPlay button in the bottom row (added once, next to the lights) opens Flick AirPlay, the separate receiver app; it shows the track while the phone plays.
 - What plays over AirPlay shows as Now Playing, like any music app.
-
-**New in 2.9: two independent home screens**
-- Flick TV Glass now keeps its own keys and fetches its own data, so either app works with the other removed. Glass can copy Flick TV's keys once ("Импорт из Flick TV").
-- Each app has its own Home service; the switch turns on the chosen one (needs `adb shell pm grant ua.volkov.dim android.permission.WRITE_SECURE_SETTINGS`, once).
-- The fog glyph shows as an emoji, not an empty box.
-
-**New in 2.8: Flick TV Glass**
-- A second, tvOS-style home screen (Flick TV Glass, its own app and release) reads Flick TV's films, alerts, weather and Smart Life through a signature-protected DataProvider, so keys are entered once.
-- The Home button opens whichever of the two was chosen; each has a switch to the other.
 
 **New in 2.7: faster**
 - The film row is parsed once and kept, instead of being rebuilt from storage every second by the clock.

@@ -21,15 +21,6 @@
     <!-- Android 11+: reading other apps' home screen cards (Lampa's channels and Continue watching). -->
     <uses-permission android:name="android.permission.READ_TV_LISTINGS" />
 
-    <!-- Optional, granted over ADB only: lets Flick TV switch the Home button between its own service and Glass's. -->
-    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"
-        tools:ignore="ProtectedPermissions" />
-
-    <!-- Flick TV Glass (the second home screen, same signing key) reads Flick TV's data through DataProvider. -->
-    <permission
-        android:name="ua.volkov.dim.permission.DATA"
-        android:protectionLevel="signature" />
-
     <application
         android:allowBackup="false"
         android:networkSecurityConfig="@xml/network_security"
@@ -100,10 +91,5 @@
             android:name=".StatusProvider"
             android:authorities="ua.volkov.dim.status"
             android:exported="true" />
-        <provider
-            android:name=".DataProvider"
-            android:authorities="ua.volkov.dim.data"
-            android:exported="true"
-            android:permission="ua.volkov.dim.permission.DATA" />
     </application>
 </manifest>

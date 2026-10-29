@@ -44,12 +44,7 @@ public final class HomeRedirectService extends AccessibilityService {
         startActivity(i);
     }
 
-    /** The home screen the person chose: Flick TV, or Flick TV Glass when it is installed and picked. */
     static Intent homeIntent(android.content.Context ctx) {
-        if ("glass".equals(Store.prefs(ctx).getString(Store.HOME_TARGET, "flick"))) {
-            Intent g = new Intent().setClassName(DataProvider.GLASS, DataProvider.GLASS_HOME);
-            if (g.resolveActivity(ctx.getPackageManager()) != null) return g;
-        }
         return new Intent(ctx, HomeActivity.class);
     }
 

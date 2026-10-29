@@ -11,8 +11,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * The film row's sources and their refresh, shared by Flick TV's Home and by Flick TV Glass (through
- * DataProvider): Must (similar + Want), fresh TMDB titles, and the mix with Lampa's own cards.
+ * The film row's sources and their refresh for Flick TV's Home: Must (similar + Want), fresh TMDB
+ * titles, and the mix with Lampa's own cards.
  */
 final class Feed {
     private static final ExecutorService IO = Executors.newSingleThreadExecutor();

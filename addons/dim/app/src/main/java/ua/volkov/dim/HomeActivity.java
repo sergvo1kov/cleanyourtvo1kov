@@ -276,10 +276,6 @@ public final class HomeActivity extends Activity {
         String nick = getIntent() == null ? null : getIntent().getStringExtra("must_nick");
         if (nick != null) Store.prefs(this).edit().putString(Store.MUST_NICK, nick.trim()).putLong(Store.MUST_AT, 0).apply();
         Images.init(this);
-        if (forwardHome(getIntent())) {
-            finish();
-            return;
-        }
         loadFavs();
         setContentView(build());
         askTvListings();
@@ -332,7 +328,6 @@ public final class HomeActivity extends Activity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        if (forwardHome(intent)) return;
         // Home pressed while home: back to the first page and the first favourite
         showApps(false);
         if (favRow != null && favRow.getChildCount() > 0) favRow.getChildAt(0).requestFocus();
@@ -1990,19 +1985,6 @@ public final class HomeActivity extends Activity {
     public void onRequestPermissionsResult(int code, String[] perms, int[] results) {
         super.onRequestPermissionsResult(code, perms, results);
         io.execute(() -> lampa = LampaCards.read(getApplicationContext()));
-    }
-
-    /** Home pressed while Flick TV Glass is the chosen home screen: open it instead. */
-    private boolean forwardHome(Intent i) {
-        if (i == null || !i.hasCategory(Intent.CATEGORY_HOME)) return false;
-        Intent g = HomeRedirectService.homeIntent(this);
-        if (g.getComponent() == null || getPackageName().equals(g.getComponent().getPackageName())) return false;
-        try {
-            startActivity(g.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-            return true;
-        } catch (RuntimeException e) {
-            return false;
-        }
     }
 
     private QuickPanel panel;

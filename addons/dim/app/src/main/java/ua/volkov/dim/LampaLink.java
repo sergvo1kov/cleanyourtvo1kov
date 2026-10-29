@@ -164,7 +164,7 @@ final class LampaLink {
     }
 
     /**
-     * What the Glass stage shows about a film: {tmdb, media, overview, vote, genres, year, backdrop}, from
+     * What a film card shows about a film: {tmdb, media, overview, vote, genres, year, backdrop}, from
      * TMDB in Russian with the person's key. Cached. Blocking. Null without a key or a match.
      */
     static JSONObject details(Context ctx, JSONObject film) {
