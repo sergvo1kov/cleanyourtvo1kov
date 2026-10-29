@@ -3,6 +3,8 @@
 **New in 2.6**
 - Settings are split: the settings sheet's «Flick TV» holds the look (theme, film backdrop on/off, Google TV panel, TV settings); every key and service (Must, TMDB, alerts.in.ua, Tuya, Telegram) is entered in the Control Center's Settings.
 - OK on the big alert card fetches the alerts again at once.
+- The headline over the films changes every 7–10 minutes on its own clock (a Home press no longer resets it), and the row refreshes itself: Must every 30 minutes, fresh titles every 3 hours, a new order every 40 minutes.
+- A focused tile in the settings sheet is no longer cut at the sheet's edge; the backdrop changes through a smooth blur.
 
 **For you**
 - One row from four sources, each with its own badge: Lampa's Continue watching («Продолжить»), your Must Want list («Хочу посмотреть»), Must picks like what you watched («Похожее»), fresh TMDB films and shows («Новинка»), and Lampa's own recommendations («От Lampa»). The hint says why a film is there.

@@ -172,17 +172,21 @@ public final class HomeActivity extends Activity {
     };
     // "Для тебя" now and then gives way to another line about the films, by time of day
     private int headlineIdx;
+    private long headlineAt;   // when the next line is due (wall clock), kept across Home presses
+    private String headline = "Для тебя";
     private final Runnable headlineTick = new Runnable() {
         @Override
         public void run() {
-            rotateHeadline();
-            main.postDelayed(this, nextHeadlineDelay());
+            long now = System.currentTimeMillis();
+            if (headlineAt == 0) headlineAt = now + nextHeadlineDelay();
+            if (now >= headlineAt && rotateHeadline()) headlineAt = now + nextHeadlineDelay();
+            main.postDelayed(this, 20_000);
         }
     };
 
-    /** Somewhere between five and ten minutes: a change now and then, never a flicker. */
+    /** Somewhere between seven and ten minutes: a change now and then, never a flicker. */
     private static long nextHeadlineDelay() {
-        return 5 * 60_000L + (long) (Math.random() * 5 * 60_000L);
+        return 7 * 60_000L + (long) (Math.random() * 3 * 60_000L);
     }
 
     private List<String> headlines() {
@@ -205,18 +209,18 @@ public final class HomeActivity extends Activity {
         return out;
     }
 
-    private void rotateHeadline() {
-        if (appsShown || titleBig == null) return;
-        String next;
-        if (!"must".equals(heroMode)) {
-            headlineIdx = 0;
-            next = "Для тебя";
-        } else {
-            List<String> all = headlines();
+    /** True when a new line went up (only over the film row, never on Apps, music or an alert). */
+    private boolean rotateHeadline() {
+        if (appsShown || titleBig == null || !"must".equals(heroMode)) return false;
+        List<String> all = headlines();
+        headlineIdx = (headlineIdx + 1) % all.size();
+        String next = all.get(headlineIdx);
+        if (next.contentEquals(titleBig.getText())) {
             headlineIdx = (headlineIdx + 1) % all.size();
             next = all.get(headlineIdx);
         }
-        if (next.contentEquals(titleBig.getText())) return;
+        headline = next;
+        final String line = next;
         // the old line slides up and fades, the new one rises in from below
         titleBig.animate().cancel();
         titleBig.animate().alpha(0f).translationY(-px(8)).setDuration(220).withEndAction(() -> {
@@ -225,11 +229,12 @@ public final class HomeActivity extends Activity {
                 titleBig.setTranslationY(0f);
                 return;
             }
-            titleBig.setText(next);
+            titleBig.setText(line);
             titleBig.setTranslationY(px(8));
             titleBig.animate().alpha(1f).translationY(0f).setDuration(380)
                     .setInterpolator(new android.view.animation.DecelerateInterpolator(2f)).start();
         }).start();
+        return true;
     }
 
     private final Runnable slowTick = new Runnable() {
@@ -240,6 +245,7 @@ public final class HomeActivity extends Activity {
             readBluetooth();
             refreshMust(false);
             refreshFresh(false);
+            reshuffleFeed();
             io.execute(() -> lampa = LampaCards.read(getApplicationContext()));
             renderQuick();
             main.postDelayed(this, 30_000);
@@ -289,7 +295,7 @@ public final class HomeActivity extends Activity {
         main.post(tick);
         main.post(slowTick);
         main.removeCallbacks(headlineTick);
-        main.postDelayed(headlineTick, nextHeadlineDelay());
+        main.post(headlineTick);
         if (ambientStart == 0) ambientStart = SystemClock.elapsedRealtime();
         main.post(ambientTick);
         renderFavs();
@@ -551,8 +557,7 @@ public final class HomeActivity extends Activity {
         appsShown = apps;
         selectTab(apps);
         hideHint();
-        String head = apps ? "Все приложения" : "Для тебя";
-        headlineIdx = 0;
+        String head = apps ? "Все приложения" : headline;
         titleBig.setTranslationY(0f);
         if (animate) {
             // the title row dips and comes back with the new words
@@ -1052,16 +1057,39 @@ public final class HomeActivity extends Activity {
             fresh = new JSONArray();
             want = new JSONArray();
         }
-        return Fresh.mix(l, want, must, fresh);
+        return Fresh.mix(l, rotate(want, feedSeed), rotate(must, feedSeed * 3), rotate(fresh, feedSeed * 2));
+    }
+
+    private int feedSeed;
+    private long feedShuffledAt = System.currentTimeMillis();
+
+    /**
+     * Every 40 minutes the row starts from other films of each list, so it does not look the same all
+     * evening; never while the remote is on the row.
+     */
+    private void reshuffleFeed() {
+        long now = System.currentTimeMillis();
+        if (now - feedShuffledAt < 40 * 60_000L || hero == null || hero.findFocus() != null) return;
+        feedShuffledAt = now;
+        feedSeed++;
+        heroMode = "";
+    }
+
+    private static JSONArray rotate(JSONArray a, int by) {
+        int n = a.length();
+        if (n < 2 || by % n == 0) return a;
+        JSONArray out = new JSONArray();
+        for (int i = 0; i < n; i++) out.put(a.opt((i + by) % n));
+        return out;
     }
 
     private long freshTried;
 
-    /** Fresh TMDB titles for the row, every six hours, only with a TMDB key. */
+    /** Fresh TMDB titles for the row, every three hours, only with a TMDB key. */
     private void refreshFresh(boolean force) {
         if (Store.str(this, Store.TMDB_KEY).isEmpty()) return;
         long now = System.currentTimeMillis();
-        if (!force && (now - Store.prefs(this).getLong(Store.FRESH_AT, 0) < 6 * 3600_000L || now - freshTried < 10 * 60_000L)) return;
+        if (!force && (now - Store.prefs(this).getLong(Store.FRESH_AT, 0) < 3 * 3600_000L || now - freshTried < 10 * 60_000L)) return;
         freshTried = now;
         Context app = getApplicationContext();
         io.execute(() -> {
