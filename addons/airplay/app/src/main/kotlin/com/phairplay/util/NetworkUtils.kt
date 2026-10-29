@@ -51,6 +51,8 @@ object NetworkUtils {
 
         // Sanitize: keep only safe characters for mDNS service names
         val sanitized = rawName.replace(Regex("[^A-Za-z0-9 _\\-]"), "").trim()
+        // Flick AirPlay: the TV's own name without a "TV" word ("TV Ergo 55MQ95 Pro" -> "Ergo 55MQ95 Pro")
+            .replace(Regex("(?i)(^|\\s)TV(\\s|$)"), " ").replace(Regex("\\s+"), " ").trim()
 
         return sanitized.ifEmpty { DEFAULT_DEVICE_NAME }
     }
