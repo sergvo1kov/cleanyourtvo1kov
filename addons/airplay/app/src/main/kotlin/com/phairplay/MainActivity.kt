@@ -454,6 +454,32 @@ class MainActivity : AppCompatActivity() {
                 android.view.KeyEvent.KEYCODE_MEDIA_SKIP_FORWARD -> { streamingScreen.seekBy(10.0); return true }
             }
         }
+        // Flick AirPlay: while the music screen shows, OK, Left and Right go to the phone before any
+        // focused button behind it can take them (OK used to press the hidden Start button instead).
+        if (event.action == android.view.KeyEvent.ACTION_DOWN && currentNowPlaying != null &&
+            nowPlayingScreen.visibility == View.VISIBLE && service?.urlPlaybackInfo() == null) {
+            val command = when (event.keyCode) {
+                android.view.KeyEvent.KEYCODE_DPAD_CENTER,
+                android.view.KeyEvent.KEYCODE_ENTER,
+                android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> com.phairplay.airplay.DacpClient.CMD_PLAY_PAUSE
+                android.view.KeyEvent.KEYCODE_DPAD_LEFT -> com.phairplay.airplay.DacpClient.CMD_PREV
+                android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> com.phairplay.airplay.DacpClient.CMD_NEXT
+                else -> null
+            }
+            if (command != null) {
+                if (event.repeatCount == 0) {
+                    service?.sendAirPlayRemoteCommand(command)
+                    nowPlayingScreen.showControls(command)
+                    nowPlayingScreen.pop(command)
+                }
+                return true
+            }
+        }
+        if (event.action == android.view.KeyEvent.ACTION_UP && currentNowPlaying != null &&
+            nowPlayingScreen.visibility == View.VISIBLE && service?.urlPlaybackInfo() == null &&
+            (event.keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER || event.keyCode == android.view.KeyEvent.KEYCODE_ENTER)) {
+            return true
+        }
         return super.dispatchKeyEvent(event)
     }
 
