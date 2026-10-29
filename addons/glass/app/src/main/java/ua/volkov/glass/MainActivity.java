@@ -68,6 +68,8 @@ public final class MainActivity extends Activity {
     private FrameLayout dockBand;
     private LinearLayout dock;
     private ScrollView appsPage;
+    private FrameLayout appsWrap;
+    private android.graphics.Bitmap currentArt;
     private LinearLayout appsGrid;
     private TextView weatherCap, statusCap, hint;
     private boolean appsShown;
@@ -248,11 +250,12 @@ public final class MainActivity extends Activity {
         info.addView(overview, ui.lp(-1, -2, 0, 10, 0, 0));
         dots = new LinearLayout(this);
         dots.setGravity(Gravity.CENTER_VERTICAL);
-        info.addView(dots, ui.lp(-2, -2, 0, 16, 0, 0));
         hint = ui.line("◀ ▶  другие фильмы     OK  смотреть в Lampa", 10, Ui.FAINT, false);
         hint.setAlpha(0f);
         info.addView(hint, ui.lp(-2, -2, 0, 10, 0, 0));
-        root.addView(info, ui.flp(560, -2, Gravity.START | Gravity.BOTTOM, 64, 0, 0, 168));
+        root.addView(info, ui.flp(560, -2, Gravity.START | Gravity.BOTTOM, 64, 0, 0, 176));
+        // carousel dots, centred just above the dock as in tvOS
+        root.addView(dots, ui.flp(-2, 8, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 0, 0, 150));
 
         // an invisible stop for the remote over the film: Up from the dock lands here
         stageFocus = new View(this);
@@ -292,17 +295,25 @@ public final class MainActivity extends Activity {
         root.addView(statusCap, ui.flp(-2, 40, Gravity.END | Gravity.TOP, 0, 32, 48, 0));
 
         // all apps, under the dock when it moves up
+        appsWrap = new FrameLayout(this);
+        appsWrap.setAlpha(0f);
+        appsWrap.setVisibility(View.GONE);
         appsPage = new ScrollView(this);
         appsPage.setVerticalScrollBarEnabled(false);
         appsPage.setClipToPadding(false);
-        appsPage.setAlpha(0f);
-        appsPage.setVisibility(View.GONE);
         appsGrid = new LinearLayout(this);
         appsGrid.setOrientation(LinearLayout.VERTICAL);
         appsGrid.setClipChildren(false);
-        appsGrid.setPadding(ui.px(8), ui.px(8), ui.px(8), ui.px(40));
+        // side and top padding leave room for a focused tile to grow without being cut
+        appsGrid.setPadding(ui.px(24), ui.px(22), ui.px(24), ui.px(48));
         appsPage.addView(appsGrid);
-        root.addView(appsPage, ui.flp(-1, -1, Gravity.TOP, 56, 150, 56, 0));
+        appsWrap.addView(appsPage, new FrameLayout.LayoutParams(-1, -1));
+        // apps that scroll up under the dock fade out instead of running into it
+        View fade = new View(this);
+        fade.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[]{0xF2000000, 0x99000000, 0x00000000}));
+        appsWrap.addView(fade, new FrameLayout.LayoutParams(-1, ui.px(34), Gravity.TOP));
+        root.addView(appsWrap, ui.flp(-1, -1, Gravity.TOP, 32, 170, 32, 0));
 
         // the frosted dock
         dockBand = new FrameLayout(this);
@@ -404,7 +415,10 @@ public final class MainActivity extends Activity {
         if (d != null && d.optDouble("vote", 0) > 0) {
             m.append(m.length() > 0 ? "  ·  " : "").append("★ ").append(String.format(Locale.ROOT, "%.1f", d.optDouble("vote"))).append(" TMDB");
         }
-        meta.setText(m.toString());
+        android.text.SpannableString sp = new android.text.SpannableString(m.toString());
+        int star = m.indexOf("★");
+        if (star >= 0) sp.setSpan(new android.text.style.ForegroundColorSpan(0xFFFFD60A), star, star + 1, 0);
+        meta.setText(sp);
         overview.setText(d == null ? "" : d.optString("overview"));
     }
 
@@ -441,6 +455,7 @@ public final class MainActivity extends Activity {
             Runnable reveal = () -> {
                 if (!url.equals(shownArt)) return;   // a newer picture is on its way
                 in.setImageBitmap(b);
+                currentArt = b;
                 in.setAlpha(1f);
                 in.setScaleX(1.05f);
                 in.setScaleY(1.05f);
@@ -608,6 +623,10 @@ public final class MainActivity extends Activity {
     }
 
     private View appTile(String pkg, int w, int h) {
+        return appTile(pkg, w, h, null);
+    }
+
+    private View appTile(String pkg, int w, int h, TextView label) {
         FrameLayout f = new FrameLayout(this);
         Drawable banner = banner(pkg);
         ImageView img = new ImageView(this);
@@ -626,13 +645,22 @@ public final class MainActivity extends Activity {
             }
             f.addView(ic, new FrameLayout.LayoutParams(h * 3 / 5, h * 3 / 5, Gravity.CENTER));
         }
+        // a soft gloss across the top, like the reference's glass icons
+        View gloss = new View(this);
+        gloss.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[]{0x33FFFFFF, 0x0DFFFFFF, 0x00FFFFFF}));
+        f.addView(gloss, new FrameLayout.LayoutParams(-1, h / 2, Gravity.TOP));
         f.setClipToOutline(true);
-        focusable(f, null);
+        focusable(f, null, label);
         return f;
     }
 
     /** Focus as in tvOS: the tile lifts, grows and gets a bright rim. */
     private void focusable(View v, View.OnClickListener click) {
+        focusable(v, click, null);
+    }
+
+    private void focusable(View v, View.OnClickListener click, TextView label) {
         v.setFocusable(true);
         v.setClickable(true);
         if (click != null) v.setOnClickListener(click);
@@ -643,8 +671,9 @@ public final class MainActivity extends Activity {
         if (v instanceof FrameLayout) ((FrameLayout) v).setForeground(rim);
         v.setOnFocusChangeListener((view, has) -> {
             rim.setStroke(ui.px(2), has ? 0xE6FFFFFF : 0);
-            view.animate().scaleX(has ? 1.1f : 1f).scaleY(has ? 1.1f : 1f).translationZ(has ? ui.px(10) : 0)
+            view.animate().scaleX(has ? 1.08f : 1f).scaleY(has ? 1.08f : 1f).translationZ(has ? ui.px(10) : 0)
                     .setDuration(180).setInterpolator(new DecelerateInterpolator()).start();
+            if (label != null) label.animate().alpha(has ? 1f : 0f).setDuration(180).start();
         });
     }
 
@@ -657,10 +686,20 @@ public final class MainActivity extends Activity {
             float up = -(dockBand.getTop() - ui.px(78));
             dockBand.animate().translationY(up).setDuration(380).setInterpolator(ease).start();
             info.animate().alpha(0f).setDuration(200).start();
-            dim.animate().alpha(1f).setDuration(300).start();
-            appsPage.setVisibility(View.VISIBLE);
-            appsPage.setTranslationY(ui.px(40));
-            appsPage.animate().alpha(1f).translationY(0f).setDuration(380).setInterpolator(ease).start();
+            dots.animate().alpha(0f).setDuration(200).start();
+            // the stage turns to frosted glass behind the apps
+            if (currentArt != null) {
+                soft.animate().cancel();
+                soft.setImageBitmap(Ui.blur(currentArt, 40));
+                soft.animate().alpha(1f).setDuration(380).start();
+            }
+            dim.animate().alpha(0.72f).setDuration(300).start();
+            FrameLayout.LayoutParams wl = (FrameLayout.LayoutParams) appsWrap.getLayoutParams();
+            wl.topMargin = ui.px(78) + dockBand.getHeight() + ui.px(4);
+            appsWrap.setLayoutParams(wl);
+            appsWrap.setVisibility(View.VISIBLE);
+            appsWrap.setTranslationY(ui.px(40));
+            appsWrap.animate().alpha(1f).translationY(0f).setDuration(380).setInterpolator(ease).start();
             appsPage.scrollTo(0, 0);
             main.postDelayed(() -> {
                 if (appsGrid.getChildCount() > 0) ((ViewGroup) appsGrid.getChildAt(0)).getChildAt(0).requestFocus();
@@ -668,9 +707,11 @@ public final class MainActivity extends Activity {
         } else {
             dockBand.animate().translationY(0f).setDuration(320).setInterpolator(ease).start();
             info.animate().alpha(1f).setDuration(300).start();
+            dots.animate().alpha(1f).setDuration(300).start();
+            soft.animate().alpha(0f).setDuration(400).start();
             dim.animate().alpha(0f).setDuration(300).start();
-            appsPage.animate().alpha(0f).translationY(ui.px(40)).setDuration(220)
-                    .withEndAction(() -> appsPage.setVisibility(View.GONE)).start();
+            appsWrap.animate().alpha(0f).translationY(ui.px(40)).setDuration(220)
+                    .withEndAction(() -> appsWrap.setVisibility(View.GONE)).start();
             if (dock.getChildCount() > 0) dock.getChildAt(0).requestFocus();
         }
     }
@@ -684,11 +725,10 @@ public final class MainActivity extends Activity {
             if (!pkgs.contains(p) && !p.equals(getPackageName()) && !p.equals("com.gathin.tvhome")) pkgs.add(p);
         }
         Collections.sort(pkgs, (a, b) -> label(a).compareToIgnoreCase(label(b)));
-        int page = getResources().getDisplayMetrics().widthPixels - ui.px(112) - ui.px(16);
+        int page = getResources().getDisplayMetrics().widthPixels - ui.px(64) - ui.px(48);
         int gap = ui.px(16);
         int w = (page - 5 * gap) / 6, h = Math.round(w * 9f / 16f);
         LinearLayout row = null;
-        List<String> inDock = dockApps();
         for (int i = 0; i < pkgs.size(); i++) {
             if (i % 6 == 0) {
                 row = new LinearLayout(this);
@@ -699,7 +739,11 @@ public final class MainActivity extends Activity {
             LinearLayout cell = new LinearLayout(this);
             cell.setOrientation(LinearLayout.VERTICAL);
             cell.setClipChildren(false);
-            View tile = appTile(pkg, w, h);
+            TextView t = ui.line(label(pkg), 10, Ui.WHITE, true);
+            t.setMaxWidth(w);
+            t.setGravity(Gravity.CENTER);
+            t.setAlpha(0f);   // tvOS names only the focused app
+            View tile = appTile(pkg, w, h, t);
             tile.setOnClickListener(v -> launch(pkg));
             tile.setOnLongClickListener(v -> {
                 List<String> d = dockApps();
@@ -717,9 +761,8 @@ public final class MainActivity extends Activity {
                 return true;
             });
             cell.addView(tile, new LinearLayout.LayoutParams(w, h));
-            TextView t = ui.line(label(pkg), 10, inDock.contains(pkg) ? Ui.WHITE : Ui.SUB, false);
-            t.setMaxWidth(w);
-            cell.addView(t, ui.lp(-2, -2, 2, 8, 0, 0));
+            cell.addView(t, new LinearLayout.LayoutParams(w, -2));
+            ((LinearLayout.LayoutParams) t.getLayoutParams()).topMargin = ui.px(12);
             row.addView(cell, ui.lp(-2, -2, 0, 0, i % 6 == 5 ? 0 : 16, 0));
         }
     }
