@@ -38,7 +38,12 @@ jobs:
         working-directory: addons/dim
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon assembleRelease
+          ./gradlew --no-daemon lintRelease assembleRelease
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: dim-lint
+          path: addons/dim/app/build/reports/lint-results*
+          retention-days: 30
       - name: Name the APKs
         run: |
           mkdir out

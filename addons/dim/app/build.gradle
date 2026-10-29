@@ -34,6 +34,13 @@ android {
         }
     }
 
+    // Lint runs on every build; its report is uploaded with the APKs. It does not stop the build.
+    lint {
+        abortOnError false
+        textReport true
+        textOutput file("$buildDir/reports/lint-results.txt")
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
