@@ -80,7 +80,8 @@ jobs:
           [ -n "$ver" ] || exit 0
           mkdir -p "rel/Flick-TV-$ver"
           cp addons/dim/app/build/outputs/apk/release/app-release.apk "rel/Flick-TV-$ver/flick-tv-$ver.apk"
-          cp addons/dim/install/install.ps1 addons/dim/install/УСТАНОВИТЬ.bat addons/dim/install/ИНСТРУКЦИЯ.txt "rel/Flick-TV-$ver/"
+          cp addons/dim/install/install.ps1 addons/dim/install/УСТАНОВИТЬ.bat addons/dim/install/ИНСТРУКЦИЯ.txt \
+            addons/dim/install/reset-google-tv.ps1 addons/dim/install/ВЕРНУТЬ-GOOGLE-TV.bat "rel/Flick-TV-$ver/"
           sed -i "s/flick-tv-2.0.apk/flick-tv-$ver.apk/" "rel/Flick-TV-$ver/install.ps1"
           (cd rel && zip -qr "Flick-TV-$ver.zip" "Flick-TV-$ver")
           # a version's release is kept up to date with the newest build of that version

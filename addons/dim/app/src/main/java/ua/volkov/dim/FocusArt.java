@@ -5,7 +5,6 @@ import android.graphics.Bitmap;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Handler;
 import android.os.Looper;
-import android.view.Gravity;
 import android.view.View;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
@@ -22,15 +21,14 @@ final class FocusArt {
     private final FrameLayout box;
     private final ImageView[] img = new ImageView[2];
     private int front;
+    private final ImageView soft;
     private final Handler main = new Handler(Looper.getMainLooper());
-    private final float dp;
     private String showing = "";
     private String wanted = "";
     private Runnable pending;
 
     FocusArt(Context ctx, FrameLayout root, boolean light) {
         this.ctx = ctx;
-        dp = ctx.getResources().getDisplayMetrics().density;
         box = new FrameLayout(ctx);
         box.setAlpha(0f);
         for (int i = 0; i < 2; i++) {
@@ -39,6 +37,11 @@ final class FocusArt {
             img[i].setAlpha(0f);
             box.addView(img[i], new FrameLayout.LayoutParams(-1, -1));
         }
+        // a blurred copy of the next picture, laid over the change: sharp, soft, sharp again
+        soft = new ImageView(ctx);
+        soft.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        soft.setAlpha(0f);
+        box.addView(soft, new FrameLayout.LayoutParams(-1, -1));
         // Lampa's look: the picture fills the screen, darkened towards the left and the bottom where text is
         int bg = light ? 0xEEF2F8 : 0x070A14;
         View left = new View(ctx);
@@ -86,20 +89,39 @@ final class FocusArt {
     private void present(String key, Bitmap b) {
         if (b == null || key.equals(showing)) return;
         showing = key;
-        ImageView out = img[front];
+        final ImageView out = img[front];
         front = 1 - front;
-        ImageView in = img[front];
-        in.setImageBitmap(b);
+        final ImageView in = img[front];
+        boolean first = box.getAlpha() < 0.05f;
+        soft.animate().cancel();
         in.animate().cancel();
-        in.setAlpha(0f);
-        in.setTranslationX(48 * dp);
-        in.setScaleX(1.06f);
-        in.setScaleY(1.06f);
-        in.animate().alpha(1f).translationX(0f).scaleX(1f).scaleY(1f).setDuration(650)
-                .setInterpolator(new DecelerateInterpolator(2f)).start();
         out.animate().cancel();
-        out.animate().alpha(0f).translationX(-24 * dp).setDuration(450).start();
+        soft.setImageBitmap(blur(b));
+        Runnable reveal = () -> {
+            // under the blur: the new picture is already there; the blur lifts off it
+            in.setImageBitmap(b);
+            in.setAlpha(1f);
+            in.setScaleX(1.04f);
+            in.setScaleY(1.04f);
+            out.setAlpha(0f);
+            in.animate().scaleX(1f).scaleY(1f).setDuration(1400).setInterpolator(new DecelerateInterpolator()).start();
+            soft.animate().alpha(0f).setDuration(560).setInterpolator(new DecelerateInterpolator()).start();
+        };
+        if (first) {
+            soft.setAlpha(1f);
+            reveal.run();
+        } else {
+            // the old picture dissolves into the blurred new one
+            soft.animate().alpha(1f).setDuration(240).withEndAction(reveal).start();
+        }
         box.animate().cancel();
-        box.animate().alpha(1f).setDuration(300).start();
+        box.animate().alpha(1f).setDuration(320).start();
+    }
+
+    /** A soft blur that costs almost nothing: shrink hard, then let filtering stretch it back. */
+    private static Bitmap blur(Bitmap b) {
+        int w = Math.max(8, b.getWidth() / 24), h = Math.max(5, b.getHeight() / 24);
+        Bitmap small = Bitmap.createScaledBitmap(b, w, h, true);
+        return Bitmap.createScaledBitmap(small, w * 6, h * 6, true);
     }
 }
