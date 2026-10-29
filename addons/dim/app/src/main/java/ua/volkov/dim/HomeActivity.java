@@ -657,7 +657,11 @@ public final class HomeActivity extends Activity {
         if (isInside(f, favRow)) return "◉  Открыть        ◎  Удерживай OK — переставить или убрать из избранного";
         if (isInside(f, quickRow)) return "◉  Открыть        ◎  Удерживай OK — заменить, переставить, убрать или добавить плитку";
         if (isInside(f, appsGrid)) return "◉  Открыть        ◎  Удерживай OK — добавить в избранное или убрать";
-        if (isInside(f, hero) && "must".equals(heroMode)) return "◉  Открыть в Lampa";
+        if (isInside(f, hero) && "must".equals(heroMode)) {
+            Object film = f.getTag();
+            String why = film instanceof JSONObject ? category((JSONObject) film)[2] + "        " : "";
+            return why + "◉  Открыть в Lampa";
+        }
         return null;
     }
 
@@ -943,7 +947,8 @@ public final class HomeActivity extends Activity {
             final String year = o.optString("year");
             final String type = o.optString("type");
             final String tmdb = o.optString("tmdb"), media = o.optString("media");
-            final String badge = o.optString("label");
+            final String[] cat = category(o);
+            final String badge = cat[0];
             LinearLayout card = new LinearLayout(this);
             card.setOrientation(LinearLayout.VERTICAL);
             FrameLayout frame = new FrameLayout(this);
@@ -968,9 +973,7 @@ public final class HomeActivity extends Activity {
             if (!badge.isEmpty()) {
                 TextView b = text(badge, 7.5f, 0xFFFFFFFF, true);
                 b.setPadding(px(5), px(1.5f), px(5), px(2));
-                int bc = "lampa".equals(o.optString("src")) ? 0xE62E7DFF
-                        : "fresh".equals(o.optString("src")) ? 0xE6E5484D : 0xE628A55F;   // Lampa, new, your Must list
-                b.setBackground(round(bc, 5, 0));
+                b.setBackground(round((int) Long.parseLong(cat[1], 16), 5, 0));
                 FrameLayout.LayoutParams bl = new FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.START);
                 bl.setMargins(px(5), px(5), 0, 0);
                 frame.addView(b, bl);
@@ -992,6 +995,20 @@ public final class HomeActivity extends Activity {
         FrameLayout.LayoutParams hl = new FrameLayout.LayoutParams(-1, -1);
         hl.setMargins(-px(8), -px(8), -px(8), 0);
         hero.addView(hs, hl);
+    }
+
+    /**
+     * Every poster says why it is in the row, in one of five words: {badge, colour (hex ARGB), hint}.
+     */
+    static String[] category(JSONObject o) {
+        String src = o.optString("src");
+        if ("lampa".equals(src) && "Продолжить".equals(o.optString("label")))
+            return new String[]{"Продолжить", "E62E7DFF", "Ты начал смотреть это в Lampa"};
+        if ("lampa".equals(src)) return new String[]{"От Lampa", "E68E5CF7", "Рекомендация Lampa"};
+        if ("fresh".equals(src)) return new String[]{"Новинка", "E6E5484D", "Свежий фильм или сериал, его сейчас смотрят"};
+        if ("Хочу посмотреть".equals(o.optString("label")))
+            return new String[]{"Хочу посмотреть", "E628A55F", "Из твоего списка «Хочу посмотреть» в Must"};
+        return new String[]{"Похожее", "E6C77D12", "Похоже на то, что ты смотрел (Must)"};
     }
 
     private void dimBeyond(HorizontalScrollView hs, LinearLayout row) {
