@@ -50,6 +50,7 @@ final class Store {
     static final String TG_ERROR = "tg_error";
 
     // Home screen
+    static final String BACKDROP = "backdrop_on";     // the focused film's picture behind the row
     static final String THEME = "theme";              // "dark" or "light"
     static final String FAVS = "favs";                // package names, comma separated, in order
     static final String MUST_NICK = "must_nick";

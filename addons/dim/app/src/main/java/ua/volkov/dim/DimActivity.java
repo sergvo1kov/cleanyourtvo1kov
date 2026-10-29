@@ -122,7 +122,7 @@ public final class DimActivity extends Activity {
 
         // Row 1: alert (wide) + weather
         LinearLayout row1 = row();
-        LinearLayout alert = card(v -> Refresher.kick(this, true));
+        LinearLayout alert = card(v -> refreshAlerts());
         LinearLayout head = new LinearLayout(this);
         head.setGravity(Gravity.CENTER_VERTICAL);
         alertDot = text("●", 22, StatusProvider.GREY, false);
@@ -172,9 +172,9 @@ public final class DimActivity extends Activity {
         torr.addView(torrSub, margins(0, 8, 0, 0));
         row2.addView(torr, weight(1, 0, 0, 20, 0));
 
-        LinearLayout settings = card(v -> AppSettings.show(this, this::openSettings, () -> { }));
+        LinearLayout settings = card(v -> openSettings());
         settings.addView(text("Настройки", 22, WHITE, true));
-        settings.addView(text("Flick TV, Must, Lampa, ключи", 14, FAINT, false), margins(0, 8, 0, 0));
+        settings.addView(text("Ключи и сервисы: тревоги, Smart Life, Telegram, Must, TMDB", 14, FAINT, false), margins(0, 8, 0, 0));
         row2.addView(settings, weight(1, 0, 0, 0, 0));
         col.addView(row2, margins(0, 0, 0, 30));
 
@@ -482,6 +482,13 @@ public final class DimActivity extends Activity {
 
     // ---------------------------------------------------------------- actions
 
+    /** OK on the alert card: fetch the alerts again now, and say so until the answer arrives. */
+    private void refreshAlerts() {
+        alertSub.setText("Обновляю данные о тревогах…");
+        Refresher.kick(this, true);
+        main.postDelayed(this::render, 5000);
+    }
+
     private void checkTorrServe() {
         new Thread(() -> {
             String v = TorrServe.version();
@@ -581,15 +588,25 @@ public final class DimActivity extends Activity {
         EditText secret = field(box, "Tuya Access Secret / Client Secret", Store.TUYA_SECRET, true);
         EditText channels = field(box, "Telegram-каналы через запятую (пусто — " + Telegram.DEFAULT_CHANNELS + ")",
                 Store.TG_CHANNELS, false);
+        EditText must = field(box, "Must: ник открытого профиля (mustapp.com/@ник)", Store.MUST_NICK, false);
+        EditText tmdb = field(box, "TMDB: API key или Read Access Token (Lampa в один клик, новинки, фон)", Store.TMDB_KEY, true);
+        ScrollView scroll = new ScrollView(this);
+        scroll.addView(box);
         new AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
-                .setTitle("Настройки")
-                .setView(box)
+                .setTitle("Ключи и сервисы")
+                .setView(scroll)
                 .setPositiveButton("Сохранить", (d, w) -> {
                     Store.prefs(this).edit()
                             .putString(Store.ALERTS_TOKEN, token.getText().toString().trim())
                             .putString(Store.TUYA_ID, id.getText().toString().trim())
                             .putString(Store.TUYA_SECRET, secret.getText().toString().trim())
                             .putString(Store.TG_CHANNELS, channels.getText().toString().trim())
+                            .putString(Store.MUST_NICK, must.getText().toString().trim().replace("@", "").replace("https://mustapp.com/", ""))
+                            .putLong(Store.MUST_AT, 0)
+                            .putString(Store.TMDB_KEY, tmdb.getText().toString().trim())
+                            .putLong(Store.FRESH_AT, 0)
+                            .remove("lampa_ids")
+                            .remove("backdrops")
                             .putLong(Store.TG_AT, 0)
                             .putLong(Store.ALERT_AT, 0)
                             .putLong(Store.TUYA_AT, 0)

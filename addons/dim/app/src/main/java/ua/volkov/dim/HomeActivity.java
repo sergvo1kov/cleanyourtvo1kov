@@ -277,10 +277,13 @@ public final class HomeActivity extends Activity {
     protected void onResume() {
         super.onResume();
         HomeRedirectService.allowStock = false;   // our Home is back: the stock one redirects again
-        if (AppSettings.light(this) != light) {   // the theme was changed in the Control Center
+        if (AppSettings.light(this) != light) {
             recreate();
             return;
         }
+        // keys changed in the Control Center: fetch again with them
+        if (Store.prefs(this).getLong(Store.MUST_AT, 0) == 0) mustTried = 0;
+        if (Store.prefs(this).getLong(Store.FRESH_AT, 0) == 0) freshTried = 0;
         getContentResolver().registerContentObserver(StatusProvider.URI, false, observer);
         Refresher.kick(this, false);
         main.post(tick);
@@ -474,7 +477,7 @@ public final class HomeActivity extends Activity {
         root.getViewTreeObserver().addOnGlobalFocusChangeListener((oldF, newF) -> {
             if (appsShown && newF != null) snapApps(newF);
             Object film = newF == null ? null : newF.getTag();
-            if (!appsShown && film instanceof JSONObject) focusArt.show((JSONObject) film);
+            if (!appsShown && film instanceof JSONObject && AppSettings.backdropOn(this)) focusArt.show((JSONObject) film);
             else focusArt.hide();
             if (moving >= 0 || qMoving >= 0) return;
             hideHint();
@@ -888,7 +891,10 @@ public final class HomeActivity extends Activity {
     private void buildAlertHero() {
         FrameLayout c = heroCard(new int[]{0xFF3A0A0C, 0xFF5C1014, 0xFF2A080A});
         c.setFocusable(true);
-        c.setOnClickListener(v -> startActivity(new Intent(this, DimActivity.class)));
+        c.setOnClickListener(v -> {
+            Toast.makeText(this, "Обновляю данные о тревогах…", Toast.LENGTH_SHORT).show();
+            Refresher.kick(this, true);
+        });
         focusRing(c, 15);
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
@@ -1039,7 +1045,8 @@ public final class HomeActivity extends Activity {
         }
         JSONArray fresh, want;
         try {
-            fresh = new JSONArray(Store.prefs(this).getString(Store.FRESH_LIST, "[]"));
+            fresh = Store.str(this, Store.TMDB_KEY).isEmpty() ? new JSONArray()
+                    : new JSONArray(Store.prefs(this).getString(Store.FRESH_LIST, "[]"));
             want = new JSONArray(Store.prefs(this).getString(Store.MUST_WANT, "[]"));
         } catch (Exception e) {
             fresh = new JSONArray();
@@ -1855,7 +1862,7 @@ public final class HomeActivity extends Activity {
     }
 
     private void openSettings() {
-        AppSettings.show(this, () -> startActivity(new Intent(this, DimActivity.class)), this::settingsChanged);
+        AppSettings.visual(this, this::settingsChanged);
     }
 
     /** Theme, Must or TMDB changed (here or in the Control Center): rebuild what depends on them. */
@@ -1864,9 +1871,7 @@ public final class HomeActivity extends Activity {
             recreate();
             return;
         }
-        mustTried = 0;
-        refreshMust(true);
-        refreshFresh(true);
+        focusArt.hide();
     }
 
     private void openGoogleTvPanel() {

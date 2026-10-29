@@ -118,10 +118,18 @@ final class FocusArt {
         box.animate().alpha(1f).setDuration(320).start();
     }
 
-    /** A soft blur that costs almost nothing: shrink hard, then let filtering stretch it back. */
+    /**
+     * A smooth blur without pixels: halve the picture step by step (each step averages 2×2 pixels, so
+     * nothing aliases), then double it back up step by step with filtering.
+     */
     private static Bitmap blur(Bitmap b) {
-        int w = Math.max(8, b.getWidth() / 24), h = Math.max(5, b.getHeight() / 24);
-        Bitmap small = Bitmap.createScaledBitmap(b, w, h, true);
-        return Bitmap.createScaledBitmap(small, w * 6, h * 6, true);
+        Bitmap cur = b;
+        while (cur.getWidth() > 40) {
+            cur = Bitmap.createScaledBitmap(cur, Math.max(1, cur.getWidth() / 2), Math.max(1, cur.getHeight() / 2), true);
+        }
+        for (int i = 0; i < 4; i++) {
+            cur = Bitmap.createScaledBitmap(cur, cur.getWidth() * 2, cur.getHeight() * 2, true);
+        }
+        return cur;
     }
 }

@@ -158,7 +158,7 @@ final class QuickPanel {
             close();
             host.openAppSettings();
         });
-        sub(app).setText("Тема, Must, Lampa, ключи");
+        sub(app).setText("Тема, фон, Google Home");
         r4.addView(app, half(true));
         LinearLayout all = tile(R.drawable.qp_gear, "Все настройки ›", v -> settings(new Intent(Settings.ACTION_SETTINGS)));
         sub(all).setText("Телевизор");
