@@ -193,8 +193,14 @@ final class ControlCenter extends Panel {
             alertSub.setText("Тревоги, Smart Life и фильмы приходят из Flick TV");
         }
         netSub.setText(network());
-        BluetoothAdapter b = BluetoothAdapter.getDefaultAdapter();
-        btSub.setText(b == null ? "нет" : b.isEnabled() ? "Включён" : "Выключен");
+        String bt;
+        try {
+            BluetoothAdapter b = BluetoothAdapter.getDefaultAdapter();
+            bt = b == null ? "нет" : b.isEnabled() ? "Включён" : "Выключен";
+        } catch (RuntimeException e) {
+            bt = "Пульт и наушники";   // no permission on this Android version
+        }
+        btSub.setText(bt);
         String torr = st.optString("torr");
         torrSub.setText(torr.isEmpty() ? "TorrServe" : "Работает");
         renderLights(st.optJSONArray("tuya"));

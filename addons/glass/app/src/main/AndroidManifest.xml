@@ -11,6 +11,9 @@
     <!-- A home screen lists every TV app to launch it. -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
+    <!-- Bluetooth on or off, in the Control Center. -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <!-- Flick TV's data (films, alerts, Smart Life): only granted to apps signed with Flick TV's key. -->
     <uses-permission android:name="ua.volkov.dim.permission.DATA" />
 

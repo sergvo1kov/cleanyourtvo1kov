@@ -425,7 +425,12 @@ public final class MainActivity extends Activity {
         if (url == null || url.isEmpty() || url.equals(shownArt)) return;
         shownArt = url;
         Images.get(url, b -> {
-            if (b == null || !url.equals(shownArt)) return;
+            if (!url.equals(shownArt)) return;
+            if (b == null) {   // the picture did not load: never leave the blur over the screen
+                soft.animate().cancel();
+                soft.animate().alpha(0f).setDuration(400).start();
+                return;
+            }
             ImageView out = art[front];
             front = 1 - front;
             ImageView in = art[front];
@@ -434,6 +439,7 @@ public final class MainActivity extends Activity {
             in.animate().cancel();
             soft.setImageBitmap(Ui.blur(b, 40));
             Runnable reveal = () -> {
+                if (!url.equals(shownArt)) return;   // a newer picture is on its way
                 in.setImageBitmap(b);
                 in.setAlpha(1f);
                 in.setScaleX(1.05f);
