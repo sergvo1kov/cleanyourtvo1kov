@@ -68,6 +68,7 @@ final class Must {
                 row.put("poster", poster(o.optString("poster_file_path")));
                 String date = o.optString("release_date");
                 row.put("year", date.length() >= 4 ? date.substring(0, 4) : "");
+                row.put("type", o.optString("type"));
                 out.put(row);
             }
         }
@@ -129,6 +130,7 @@ final class Must {
                 row.put("poster", poster(o.optString("poster_file_path")));
                 String date = o.optString("release_date");
                 row.put("year", date.length() >= 4 ? date.substring(0, 4) : "");
+                row.put("type", o.optString("type"));
                 out.put(row);
             }
             if (!any) break;

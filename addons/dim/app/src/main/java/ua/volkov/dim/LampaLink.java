@@ -13,9 +13,9 @@ import org.json.JSONObject;
 import java.util.Locale;
 
 /**
- * Opens one exact film in Lampa. Must gives titles and years but no TMDB id, so the title goes through
- * Lampa's own exported search provider (the one Google TV's global search uses), which answers with TMDB
- * ids; the best match then opens as a themoviedb.org link, which Lampa turns into that film's card.
+ * Opens one exact film in Lampa. Must gives titles and years but no TMDB id, so the title is looked up
+ * on TMDB (with the person's free key) or, failing that, through Lampa's exported search provider; the
+ * match then opens as a themoviedb.org link, which Lampa turns into that film's card.
  * Found ids are cached, so the second press is instant.
  */
 final class LampaLink {
@@ -34,7 +34,7 @@ final class LampaLink {
     }
 
     /** {tmdbId, "movie"|"tv"}, or null. Blocking: call it off the main thread. */
-    static String[] find(Context ctx, String title, String year) {
+    static String[] find(Context ctx, String title, String year, String type) {
         if (title == null || title.trim().isEmpty()) return null;
         String key = title.trim().toLowerCase(Locale.ROOT) + "|" + (year == null ? "" : year);
         try {
@@ -48,6 +48,53 @@ final class LampaLink {
         // never send it a title that mentions Lampa.
         String low = title.toLowerCase(Locale.ROOT);
         if (low.contains("lampa") || low.contains("ламп")) return null;
+        String[] best = tmdb(ctx, title.trim(), year, type);
+        if (best == null) best = provider(ctx, title, year);
+        if (best != null) {
+            try {
+                JSONObject cache = new JSONObject(Store.prefs(ctx).getString(CACHE, "{}"));
+                if (cache.length() > 300) cache = new JSONObject();
+                cache.put(key, best[0] + "|" + best[1]);
+                Store.prefs(ctx).edit().putString(CACHE, cache.toString()).apply();
+            } catch (Exception ignored) {
+                // cache only
+            }
+        }
+        return best;
+    }
+
+    /** TMDB's own search, with the person's free API key (v3 key or v4 read token). */
+    private static String[] tmdb(Context ctx, String title, String year, String type) {
+        String key = Store.str(ctx, Store.TMDB_KEY);
+        if (key.isEmpty()) return null;
+        boolean v3 = key.matches("[0-9a-fA-F]{32}");
+        java.util.Map<String, String> h = new java.util.HashMap<>();
+        if (!v3) h.put("Authorization", "Bearer " + key);
+        boolean show = type != null && (type.startsWith("show") || type.equals("tv"));
+        String[] order = show ? new String[]{"tv", "movie"} : new String[]{"movie", "tv"};
+        for (String media : order) {
+            for (int pass = 0; pass < 2; pass++) {
+                boolean withYear = pass == 0 && year != null && !year.isEmpty();
+                if (pass == 1 && !(year != null && !year.isEmpty())) break;
+                try {
+                    String url = "https://api.themoviedb.org/3/search/" + media + "?language=ru-RU&query="
+                            + Uri.encode(title)
+                            + (withYear ? ("movie".equals(media) ? "&year=" : "&first_air_date_year=") + year : "")
+                            + (v3 ? "&api_key=" + key : "");
+                    Http.Response r = Http.get(url, h, 10_000);
+                    if (r.code != 200) return null;   // a wrong key: no point trying further
+                    org.json.JSONArray res = new JSONObject(r.body).optJSONArray("results");
+                    if (res != null && res.length() > 0) return new String[]{String.valueOf(res.getJSONObject(0).optLong("id")), media};
+                } catch (Exception e) {
+                    return null;
+                }
+            }
+        }
+        return null;
+    }
+
+    /** Lampa's exported search provider (Google TV's global search); some Lampa builds answer it. */
+    private static String[] provider(Context ctx, String title, String year) {
         String auth = authority(ctx);
         if (auth == null) return null;
         Uri uri = Uri.parse("content://" + auth + "/search/search_suggest_query/" + Uri.encode(title.trim()));
@@ -76,16 +123,6 @@ final class LampaLink {
             }
         } catch (Exception e) {
             return null;
-        }
-        if (best != null) {
-            try {
-                JSONObject cache = new JSONObject(Store.prefs(ctx).getString(CACHE, "{}"));
-                if (cache.length() > 300) cache = new JSONObject();
-                cache.put(key, best[0] + "|" + best[1]);
-                Store.prefs(ctx).edit().putString(CACHE, cache.toString()).apply();
-            } catch (Exception ignored) {
-                // cache only
-            }
         }
         return best;
     }

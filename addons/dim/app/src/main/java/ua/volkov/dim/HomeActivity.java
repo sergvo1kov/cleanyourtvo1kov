@@ -903,6 +903,7 @@ public final class HomeActivity extends Activity {
             final String title = o.optString("title");
             final String lampaIntent = o.optString("intent");
             final String year = o.optString("year");
+            final String type = o.optString("type");
             LinearLayout card = new LinearLayout(this);
             card.setOrientation(LinearLayout.VERTICAL);
             FrameLayout frame = new FrameLayout(this);
@@ -910,7 +911,7 @@ public final class HomeActivity extends Activity {
             frame.setClickable(true);
             frame.setOnClickListener(v -> {
                 if (!lampaIntent.isEmpty()) openIntentUri(lampaIntent, title);
-                else openCard(title, year);
+                else openCard(title, year, type);
             });
             // the title shows until the poster arrives and covers it
             TextView fallback = text(title, 11, txt, true);
@@ -990,7 +991,7 @@ public final class HomeActivity extends Activity {
     }
 
     /** One press: find the film's TMDB id through Lampa's search and open its card; else Lampa's search. */
-    private void openCard(String title, String year) {
+    private void openCard(String title, String year, String type) {
         if (!LampaLink.installed(this)) {
             search(title);
             return;
@@ -998,7 +999,7 @@ public final class HomeActivity extends Activity {
         Toast.makeText(this, "Открываю в Lampa: " + title, Toast.LENGTH_SHORT).show();
         Context app = getApplicationContext();
         new Thread(() -> {
-            String[] found = LampaLink.find(app, title, year);
+            String[] found = LampaLink.find(app, title, year, type);
             main.post(() -> {
                 if (found == null) {
                     openInLampa(title);
@@ -1641,6 +1642,7 @@ public final class HomeActivity extends Activity {
                 light ? "Тема: светлая  →  тёмная" : "Тема: тёмная  →  светлая",
                 "Must: " + (Store.str(this, Store.MUST_NICK).isEmpty() ? "указать ник" : "@" + Store.str(this, Store.MUST_NICK)),
                 "Тревоги, Smart Life, Telegram",
+                "Lampa: " + (Store.str(this, Store.TMDB_KEY).isEmpty() ? "ключ TMDB для открытия в один клик" : "ключ TMDB указан ✓"),
                 "Панель Google TV (Google Home)",
                 "Настройки телевизора"};
         new AlertDialog.Builder(this, dialogTheme())
@@ -1653,7 +1655,8 @@ public final class HomeActivity extends Activity {
                             break;
                         case 1: askMust(); break;
                         case 2: startActivity(new Intent(this, DimActivity.class)); break;
-                        case 3: openGoogleTvPanel(); break;
+                        case 3: askTmdb(); break;
+                        case 4: openGoogleTvPanel(); break;
                         default:
                             startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
                     }
@@ -1677,6 +1680,22 @@ public final class HomeActivity extends Activity {
                     mustTried = 0;
                     refreshMust(true);
                 })
+                .setNegativeButton("Отмена", null)
+                .show();
+    }
+
+    private void askTmdb() {
+        EditText e = new EditText(this);
+        e.setSingleLine(true);
+        e.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+        e.setText(Store.str(this, Store.TMDB_KEY));
+        e.setHint("API key или Read Access Token");
+        new AlertDialog.Builder(this, dialogTheme())
+                .setTitle("Lampa: ключ TMDB")
+                .setMessage("Бесплатный ключ: themoviedb.org → Настройки → API. С ним постер открывает карточку фильма в Lampa сразу.")
+                .setView(e)
+                .setPositiveButton("Сохранить", (d, w) -> Store.prefs(this).edit()
+                        .putString(Store.TMDB_KEY, e.getText().toString().trim()).remove("lampa_ids").apply())
                 .setNegativeButton("Отмена", null)
                 .show();
     }
