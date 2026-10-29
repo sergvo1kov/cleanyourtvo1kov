@@ -54,7 +54,7 @@ final class FocusArt {
         box.addView(bottom, new FrameLayout.LayoutParams(-1, -1));
         View top = new View(ctx);
         top.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[]{bg | 0x8C000000, bg, bg, bg}));
+                new int[]{bg | 0xC8000000, bg | 0x70000000, bg, bg}));   // keeps the clock, date and alert pill readable
         box.addView(top, new FrameLayout.LayoutParams(-1, -1));
         root.addView(box, new FrameLayout.LayoutParams(-1, -1));
     }
