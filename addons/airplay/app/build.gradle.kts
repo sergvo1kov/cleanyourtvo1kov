@@ -28,8 +28,8 @@ android {
         // applicationId is overridden per flavor below
         minSdk = 25           // Lowest common denominator (Fire TV)
         targetSdk = 35
-        versionCode = 8
-        versionName = "1.6"
+        versionCode = 9
+        versionName = "1.7"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "CAST_APP_ID", "\"${castAppId.escapedForBuildConfig()}\"")
@@ -177,9 +177,7 @@ android {
     }
 
     packaging {
-        jniLibs {
-            keepDebugSymbols += "**/*.so"
-        }
+        // Flick AirPlay: native libraries are stripped (debug symbols made libalac ten times larger)
         resources {
             // BouncyCastle (and some other crypto libs) include OSGI manifest files
             // that conflict when multiple jars are merged. Exclude them — they are
@@ -187,6 +185,9 @@ android {
             excludes += "META-INF/versions/9/OSGI-INF/**"
             excludes += "META-INF/NOTICE.md"
             excludes += "META-INF/LICENSE.md"
+            // Bouncy Castle's data files for algorithms this receiver never uses (post-quantum, X.509 texts)
+            excludes += "org/bouncycastle/pqc/**"
+            excludes += "org/bouncycastle/x509/**"
         }
     }
 
