@@ -90,7 +90,7 @@ final class Fresh {
         for (int i = 0; i < lampa.length(); i++) {
             JSONObject o = lampa.optJSONObject(i);
             if (o == null) continue;
-            if ("Продолжить".equals(o.optString("label")) && out.length() < 4) out.put(o);   // continue watching first
+            if ("Продолжить".equals(o.optString("label")) && out.length() < 6) out.put(o);   // continue watching first
             else recs.add(o);
         }
         // then one from the Want list, two Must picks, a fresh title, one of Lampa's own, and again
