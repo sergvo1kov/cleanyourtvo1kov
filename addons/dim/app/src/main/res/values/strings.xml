@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Центр управления</string>
+    <string name="app_name">Flick TV</string>
     <string name="redirect_desc">Кнопка Home открывает главный экран вместо Google TV. Панель Google TV (долгое нажатие Home) остаётся.</string>
-    <string name="redirect_label">Центр управления: кнопка Home</string>
+    <string name="redirect_label">Flick TV: кнопка Home</string>
 </resources>

@@ -175,9 +175,14 @@ public final class HomeActivity extends Activity {
         @Override
         public void run() {
             rotateHeadline();
-            main.postDelayed(this, 12_000);
+            main.postDelayed(this, nextHeadlineDelay());
         }
     };
+
+    /** Somewhere between five and ten minutes: a change now and then, never a flicker. */
+    private static long nextHeadlineDelay() {
+        return 5 * 60_000L + (long) (Math.random() * 5 * 60_000L);
+    }
 
     private List<String> headlines() {
         List<String> out = new ArrayList<>();
@@ -266,11 +271,13 @@ public final class HomeActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        HomeRedirectService.allowStock = false;   // our Home is back: the stock one redirects again
         getContentResolver().registerContentObserver(StatusProvider.URI, false, observer);
         Refresher.kick(this, false);
         main.post(tick);
         main.post(slowTick);
-        main.postDelayed(headlineTick, 12_000);
+        main.removeCallbacks(headlineTick);
+        main.postDelayed(headlineTick, nextHeadlineDelay());
         if (ambientStart == 0) ambientStart = SystemClock.elapsedRealtime();
         main.post(ambientTick);
         renderFavs();
@@ -297,7 +304,9 @@ public final class HomeActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (moving >= 0) {
+        if (panel != null && panel.isOpen()) {
+            panel.close();
+        } else if (moving >= 0) {
             endMove();
         } else if (qMoving >= 0) {
             endQuickMove();
@@ -329,6 +338,8 @@ public final class HomeActivity extends Activity {
         col.setClipChildren(false);
         col.setClipToPadding(false);
         root.addView(col, new FrameLayout.LayoutParams(-1, -1));
+        rootView = root;
+        contentView = col;
 
         // header: wordmark, tabs, settings
         FrameLayout header = new FrameLayout(this);
@@ -360,7 +371,8 @@ public final class HomeActivity extends Activity {
         tabs.addView(tabApps, margins(8, 0, 8, 0));
         tabs.addView(tabLife);
         header.addView(tabs, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));
-        TextView settings = tab("Настройки", v -> openSettings());
+        TextView settings = tab("Настройки", v -> openPanel());
+        settingsTab = settings;
         header.addView(settings, new FrameLayout.LayoutParams(-2, -2, Gravity.END | Gravity.CENTER_VERTICAL));
         col.addView(header, new LinearLayout.LayoutParams(-1, px(34)));
         selectTab(false);
@@ -447,6 +459,7 @@ public final class HomeActivity extends Activity {
         root.addView(hintBar, new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM));
         // hints appear only after the remote rests on something for a moment
         root.getViewTreeObserver().addOnGlobalFocusChangeListener((oldF, newF) -> {
+            if (appsShown && newF != null) snapApps(newF);
             if (moving >= 0 || qMoving >= 0) return;
             hideHint();
             main.removeCallbacks(dwell);
@@ -454,7 +467,13 @@ public final class HomeActivity extends Activity {
         });
 
         // all apps page
-        appsPage = new ScrollView(this);
+        // The apps page shows exactly three whole rows and moves a row at a time (snapApps), never half a row.
+        appsPage = new ScrollView(this) {
+            @Override
+            protected int computeScrollDeltaToGetChildRectOnScreen(android.graphics.Rect rect) {
+                return 0;
+            }
+        };
         appsPage.setVisibility(View.GONE);
         appsPage.setClipChildren(true);
         appsPage.setClipToPadding(true);
@@ -470,7 +489,7 @@ public final class HomeActivity extends Activity {
         appsClip.setClipChildren(true);
         appsClip.setOutlineProvider(ViewOutlineProvider.BOUNDS);
         appsClip.setClipToOutline(true);
-        appsClip.addView(appsPage, new FrameLayout.LayoutParams(-1, -1));
+        appsClip.addView(appsPage, new FrameLayout.LayoutParams(-1, -2, Gravity.TOP));
         this.appsClip = appsClip;
         FrameLayout.LayoutParams al = new FrameLayout.LayoutParams(-1, -1);
         al.setMargins(-px(8), px(10), -px(8), 0);
@@ -1271,6 +1290,41 @@ public final class HomeActivity extends Activity {
             cell.addView(t, margins(2, 5, 0, 0));
             row.addView(cell, margins(0, 0, i % 6 == 5 ? 0 : 13, 0));
         }
+        appsStart = 0;
+        appsPage.scrollTo(0, 0);
+        appsGrid.post(this::sizeApps);
+    }
+
+    private int appsStart;
+    private static final int APPS_ROWS = 3;
+
+    /** Keeps the focused row inside the three-row window, scrolling by whole rows. */
+    private void snapApps(View f) {
+        View v = f;
+        while (v != null && v.getParent() != appsGrid) {
+            v = v.getParent() instanceof View ? (View) v.getParent() : null;
+        }
+        if (v == null) return;
+        int r = appsGrid.indexOfChild(v);
+        int start = appsStart;
+        if (r < start) start = r;
+        if (r > start + APPS_ROWS - 1) start = r - APPS_ROWS + 1;
+        appsStart = Math.max(0, start);
+        appsPage.smoothScrollTo(0, appsGrid.getChildAt(appsStart).getTop() - appsGrid.getPaddingTop());
+    }
+
+    /** The window's height: three rows, plus room for the zoomed focus at the bottom. */
+    private void sizeApps() {
+        if (appsGrid.getChildCount() == 0) return;
+        View first = appsGrid.getChildAt(0);
+        int pitch = appsGrid.getChildCount() > 1 ? appsGrid.getChildAt(1).getTop() - first.getTop()
+                : first.getHeight() + px(22);
+        int h = appsGrid.getPaddingTop() + (APPS_ROWS - 1) * pitch + first.getHeight() + px(14);
+        ViewGroup.LayoutParams lp = appsPage.getLayoutParams();
+        if (lp != null && lp.height != h && first.getHeight() > 0) {
+            lp.height = h;
+            appsPage.setLayoutParams(lp);
+        }
     }
 
     // ------------------------------------------------------------------ quick tiles
@@ -1493,7 +1547,7 @@ public final class HomeActivity extends Activity {
             } else {
                 t.icon.setText("⚙");
                 t.name.setText("Настройки");
-                t.subT.setText("Вид, Must, ключи");
+                t.subT.setText("Сеть, звук, картинка");
             }
         }
     }
@@ -1506,7 +1560,7 @@ public final class HomeActivity extends Activity {
         else if ("torr".equals(sp)) launch(TORRSERVE);
         else if ("panel".equals(sp)) openGoogleTvPanel();
         else if ("sources".equals(sp)) openInput(null);
-        else openSettings();
+        else openPanel();
     }
 
     private void tileMenu(int idx) {
@@ -1637,6 +1691,36 @@ public final class HomeActivity extends Activity {
 
     // ------------------------------------------------------------------ settings
 
+    private QuickPanel panel;
+    private FrameLayout rootView;
+    private LinearLayout contentView;
+    private TextView settingsTab;
+
+    private void openPanel() {
+        if (panel == null) {
+            panel = new QuickPanel(this, rootView, contentView, light, new QuickPanel.Host() {
+                @Override
+                public void onPanelClosed() {
+                    if (settingsTab != null) settingsTab.requestFocus();
+                }
+
+                @Override
+                public void openAppSettings() {
+                    openSettings();
+                }
+            });
+        }
+        panel.open();
+    }
+
+    private String versionName() {
+        try {
+            return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+        } catch (PackageManager.NameNotFoundException e) {
+            return "";
+        }
+    }
+
     private void openSettings() {
         String[] items = {
                 light ? "Тема: светлая  →  тёмная" : "Тема: тёмная  →  светлая",
@@ -1646,7 +1730,7 @@ public final class HomeActivity extends Activity {
                 "Панель Google TV (Google Home)",
                 "Настройки телевизора"};
         new AlertDialog.Builder(this, dialogTheme())
-                .setTitle("Настройки")
+                .setTitle("Flick TV " + versionName() + "  ·  Serhii Volkov (@sergvo1kov)")
                 .setItems(items, (d, which) -> {
                     switch (which) {
                         case 0:
