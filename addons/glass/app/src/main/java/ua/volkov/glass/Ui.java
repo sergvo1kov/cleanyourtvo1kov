@@ -179,7 +179,7 @@ final class Ui {
         if (code == 0) return day ? "☀" : "☾";
         if (code <= 2) return day ? "🌤" : "☁";
         if (code == 3) return "☁";
-        if (code == 45 || code == 48) return "🌫";
+        if (code == 45 || code == 48) return "🌫\uFE0F";   // without the variation selector the TV draws an empty box
         if (code >= 51 && code <= 67) return "🌧";
         if (code >= 71 && code <= 77) return "❄";
         if (code >= 80 && code <= 82) return "🌦";
