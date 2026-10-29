@@ -300,7 +300,13 @@ public final class MainActivity extends Activity {
         appsWrap = new FrameLayout(this);
         appsWrap.setAlpha(0f);
         appsWrap.setVisibility(View.GONE);
-        appsPage = new ScrollView(this);
+        appsPage = new ScrollView(this) {
+            // the page scrolls itself, row by row and eased (gridFollow); the stock jump looks jerky
+            @Override
+            protected int computeScrollDeltaToGetChildRectOnScreen(android.graphics.Rect rect) {
+                return 0;
+            }
+        };
         appsPage.setVerticalScrollBarEnabled(false);
         appsPage.setClipToPadding(false);
         appsGrid = new LinearLayout(this);
@@ -691,6 +697,7 @@ public final class MainActivity extends Activity {
             view.animate().scaleX(has ? 1.08f : 1f).scaleY(has ? 1.08f : 1f).translationZ(has ? ui.px(10) : 0)
                     .setDuration(180).setInterpolator(new DecelerateInterpolator()).start();
             if (label != null) label.animate().alpha(has ? 1f : 0f).setDuration(180).start();
+            if (has && label != null) gridFollow(view);
         });
     }
 
@@ -736,6 +743,23 @@ public final class MainActivity extends Activity {
                     .withEndAction(() -> appsWrap.setVisibility(View.GONE)).start();
             if (dock.getChildCount() > 0) dock.getChildAt(0).requestFocus();
         }
+    }
+
+    private android.animation.ObjectAnimator gridScroll;
+
+    /** Keeps the row above the focused one in view, gliding there instead of jumping. */
+    private void gridFollow(View tile) {
+        View row = (View) tile.getParent().getParent();
+        int i = appsGrid.indexOfChild(row);
+        if (i < 0) return;
+        int max = Math.max(0, appsGrid.getHeight() - appsPage.getHeight());
+        int target = i == 0 ? 0 : Math.min(max, appsGrid.getChildAt(i - 1).getTop() - ui.px(20));
+        if (target == appsPage.getScrollY()) return;
+        if (gridScroll != null) gridScroll.cancel();
+        gridScroll = android.animation.ObjectAnimator.ofInt(appsPage, "scrollY", target);
+        gridScroll.setDuration(340);
+        gridScroll.setInterpolator(new DecelerateInterpolator(1.6f));
+        gridScroll.start();
     }
 
     /** Rows near the top of the apps page fade as they scroll towards the dock. */
