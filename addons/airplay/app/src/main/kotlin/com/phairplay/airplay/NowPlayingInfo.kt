@@ -80,20 +80,24 @@ object DmapParser {
     private const val ARTIST_TAG = "asar"
     private const val ALBUM_TAG = "asal"
 
-    data class Metadata(val title: String?, val artist: String?, val album: String?) {
+    /** [state] is DACP's player state from the `caps` tag (4 playing, 3 paused, 2 stopped), when sent. */
+    data class Metadata(val title: String?, val artist: String?, val album: String?, val state: Int? = null,
+                        val tags: String = "") {
         val isEmpty: Boolean get() = title == null && artist == null && album == null
     }
 
     fun parseNowPlaying(body: ByteArray): Metadata {
         val acc = MutableMetadata()
         runCatching { walk(body, 0, body.size, acc, depth = 0) }
-        return Metadata(acc.title, acc.artist, acc.album)
+        return Metadata(acc.title, acc.artist, acc.album, acc.state, acc.tags.toString())
     }
 
     private class MutableMetadata {
         var title: String? = null
         var artist: String? = null
         var album: String? = null
+        var state: Int? = null
+        val tags = StringBuilder()
     }
 
     private fun walk(buf: ByteArray, start: Int, end: Int, acc: MutableMetadata, depth: Int) {
@@ -105,7 +109,9 @@ object DmapParser {
             val payloadStart = i + 8
             // Malformed/overrun length → stop scanning this level rather than reading out of bounds.
             if (len < 0 || payloadStart + len > end) break
+            if (acc.tags.length < 400) acc.tags.append(tag).append(if (len in 1..4) "=" + readSmall(buf, payloadStart, len) else "").append(' ')
             when (tag) {
+                "caps" -> if (len >= 1) acc.state = readSmall(buf, payloadStart, len)
                 TRACK_TAG  -> if (acc.title == null)  acc.title  = utf8(buf, payloadStart, len)
                 ARTIST_TAG -> if (acc.artist == null) acc.artist = utf8(buf, payloadStart, len)
                 ALBUM_TAG  -> if (acc.album == null)  acc.album  = utf8(buf, payloadStart, len)
@@ -114,6 +120,12 @@ object DmapParser {
             }
             i = payloadStart + len
         }
+    }
+
+    private fun readSmall(buf: ByteArray, start: Int, len: Int): Int {
+        var v = 0
+        for (k in 0 until minOf(len, 4)) v = (v shl 8) or (buf[start + k].toInt() and 0xFF)
+        return v
     }
 
     private fun utf8(buf: ByteArray, start: Int, len: Int): String? =

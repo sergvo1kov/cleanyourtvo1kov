@@ -1588,9 +1588,8 @@ open class RtspHandler(
                 // now playing and the track end.
                 val parts = body.substringAfter(":").trim().split("/").mapNotNull { it.trim().toLongOrNull() }
                 if (parts.size == 3) onProgress(parts[0], parts[1], parts[2])
-                if (videoTransport != AirPlayVideoTransport.MULTIROOM) onPlaybackRate(1f)   // Flick AirPlay: progress comes again when playback resumes
                 if (isMultiRoom) Logger.d("MR: SET_PARAMETER progress=${parts.joinToString("/")}")
-                else Logger.d("SET_PARAMETER progress=${parts.joinToString("/")}")
+                else Logger.i("SET_PARAMETER progress=${parts.joinToString("/")}")
             }
             contentType.startsWith("image/") -> {
                 // Album artwork (image/jpeg, image/png). A zero-length body clears it.
@@ -1603,6 +1602,9 @@ open class RtspHandler(
                 onNowPlayingMetadata(meta.title, meta.artist, meta.album)
                 if (isMultiRoom) Logger.i("MR: SET_PARAMETER now-playing: title='${meta.title}' artist='${meta.artist}' album='${meta.album}'")
                 else Logger.i("SET_PARAMETER now-playing: title='${meta.title}' artist='${meta.artist}' album='${meta.album}'")
+                Logger.i("now-playing tags: ${meta.tags}")
+                // Flick AirPlay: the sender says at once whether it plays or paused (DACP player state)
+                meta.state?.let { st -> if (videoTransport != AirPlayVideoTransport.MULTIROOM) onPlaybackRate(if (st == 4) 1f else 0f) }
             }
             else -> {
                 if (isMultiRoom) Logger.d("MR: SET_PARAMETER (${request.bodyBytes.size}B, $contentType, unhandled)")
