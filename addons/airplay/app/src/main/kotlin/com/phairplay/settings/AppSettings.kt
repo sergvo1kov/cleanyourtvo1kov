@@ -69,7 +69,7 @@ data class AppSettings(
      * Whether PhairPlayService starts automatically on device boot.
      * Requires the RECEIVE_BOOT_COMPLETED permission to be effective.
      */
-    val startOnBoot: Boolean = false,
+    val startOnBoot: Boolean = true,   // Flick AirPlay: the receiver is always there after the TV starts
 
     // ─── Developer / Debug ─────────────────────────────────────────────────
     /**

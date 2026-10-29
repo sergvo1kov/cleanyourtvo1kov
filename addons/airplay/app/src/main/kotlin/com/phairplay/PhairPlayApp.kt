@@ -39,7 +39,15 @@ class PhairPlayApp : Application() {
             // Debug tree: logs everything, shows file names and line numbers
             Timber.plant(Timber.DebugTree())
         }
-        // In release builds, we deliberately plant no tree to avoid
-        // exposing debug information. Critical errors use android.util.Log directly.
+        else {
+            // Flick AirPlay: release builds keep info, warnings and errors in logcat (no debug detail), so a
+            // failed connection can be diagnosed on the TV with `adb logcat`.
+            Timber.plant(object : Timber.Tree() {
+                override fun isLoggable(tag: String?, priority: Int) = priority >= android.util.Log.INFO
+                override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
+                    android.util.Log.println(priority, tag ?: "FlickAirPlay", if (t == null) message else message + "\n" + android.util.Log.getStackTraceString(t))
+                }
+            })
+        }
     }
 }
