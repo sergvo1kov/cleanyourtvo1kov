@@ -101,6 +101,8 @@ class AirPlayReceiver(
      * surface; emits null when video is mirroring (the video screen takes over) or audio stops.
      */
     private val onNowPlayingChanged: (NowPlayingInfo?) -> Unit = {},
+    /** Flick AirPlay: the sender's volume (AirPlay dB), applied to the TV's media volume. */
+    private val onSenderVolume: (Float) -> Unit = {},
     /** Pairing PIN to show ([pin]) or hide (null) on the TV during SRP pair-setup. */
     private val onPinChanged: (pin: String?) -> Unit = {},
     /**
@@ -330,8 +332,8 @@ class AirPlayReceiver(
             onMultiroomAudioStart = { startMultiroomAudio() },
             onMultiroomSampleRate = { hz -> audioClockHz = hz.toLong() },
             multiroomDelayMs = { MULTIROOM_AUDIO_DELAY_MS },
-            // Fixed volume (see InfoResponder volumeControlType): sender volume is ignored and the
-            // remote/soundbar owns the level, so no onVolume handler.
+            // Flick AirPlay: the sender's volume moves the TV's own volume.
+            onVolume = { db -> onSenderVolume(db) },
             onNowPlayingMetadata = { title, artist, album ->
                 npTitle = title; npArtist = artist; npAlbum = album
                 emitNowPlaying()

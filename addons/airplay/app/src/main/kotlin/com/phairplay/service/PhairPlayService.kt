@@ -150,6 +150,18 @@ class PhairPlayService : Service() {
         settingsRepository = SettingsRepository(applicationContext)
         createNotificationChannel()
         registerNetworkCallback()
+        // Flick AirPlay: the track as a system media session, for the launchers' Now Playing
+        airPlaySession = AirPlaySession(applicationContext) { cmd -> sendAirPlayRemoteCommand(cmd) }
+        serviceScope.launch {
+            nowPlaying.collect { info -> airPlaySession?.update(info) }
+        }
+    }
+
+    @Volatile private var airPlaySession: AirPlaySession? = null
+
+    /** The phone's AirPlay volume slider moves the TV's own volume. */
+    fun onSenderVolume(db: Float) {
+        airPlaySession?.setVolume(db)
     }
 
     /**
@@ -350,6 +362,8 @@ class PhairPlayService : Service() {
         unregisterNetworkCallback()
         synchronized(receiversLock) { destroyed = true }
         stopAllReceiversInternal()
+        airPlaySession?.release()
+        airPlaySession = null
         serviceJob.cancel()
         super.onDestroy()
     }
@@ -473,6 +487,7 @@ class PhairPlayService : Service() {
             onNowPlayingChanged = { info ->
                 _nowPlaying.value = info
             },
+            onSenderVolume = { db -> onSenderVolume(db) },
             onPinChanged = { pin ->
                 _pairingPin.value = pin
             },

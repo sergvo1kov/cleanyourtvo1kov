@@ -58,7 +58,9 @@ object InfoResponder {
             "vv" to 2L,
             // Fixed volume (Roku-style, volumeControlType=1) in every profile: the sender's volume is
             // ignored and the remote/soundbar owns the level.
-            "volumeControlType" to if (isMultiRoom) MULTIROOM_VOLUME_CONTROL_TYPE else 1L,
+            // Flick AirPlay: variable volume, so the phone's slider works; the receiver turns it into the TV's
+            // own volume (AirPlaySession.setVolume).
+            "volumeControlType" to MULTIROOM_VOLUME_CONTROL_TYPE,
             "protovers" to protocolVersion,
             "keepAliveLowPower" to true,
             "keepAliveSendStatsAsBody" to true,
