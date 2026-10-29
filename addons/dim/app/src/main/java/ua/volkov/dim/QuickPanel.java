@@ -127,7 +127,7 @@ final class QuickPanel {
         s.addView(r1);
 
         LinearLayout r2 = row();
-        LinearLayout pic = tile("◐", "Режим картинки", v -> openPicture());
+        LinearLayout pic = tile("◐", "Картинка", v -> openPicture());
         picSub = sub(pic);
         r2.addView(pic, half(true));
         LinearLayout off = tile("⏻", "Выключить", v -> standby());
@@ -135,14 +135,16 @@ final class QuickPanel {
         r2.addView(off, half(false));
         s.addView(r2, margins(0, 8, 0, 0));
 
-        s.addView(volume(), margins(0, 8, 0, 0));
+        LinearLayout.LayoutParams vl = margins(0, 8, 0, 0);
+        vl.width = -1;
+        s.addView(volume(), vl);
 
         s.addView(text("ЗАСТАВКА", 10, sub, true), margins(4, 14, 0, 6));
         LinearLayout r3 = row();
         LinearLayout saver = tile("✦", "Запустить", v -> startSaver());
         saverSub = sub(saver);
         r3.addView(saver, half(true));
-        LinearLayout timeout = tile("◷", "Включать через", v -> nextTimeout());
+        LinearLayout timeout = tile("◷", "Таймер", v -> nextTimeout());
         timeoutSub = sub(timeout);
         r3.addView(timeout, half(false));
         s.addView(r3);
@@ -309,7 +311,7 @@ final class QuickPanel {
 
     private void renderTimeout() {
         int ms = Settings.System.getInt(a.getContentResolver(), Settings.System.SCREEN_OFF_TIMEOUT, 0);
-        timeoutSub.setText(ms <= 0 ? "—" : ms >= 3_600_000 ? (ms / 3_600_000) + " ч" : (ms / 60_000) + " мин");
+        timeoutSub.setText(ms <= 0 ? "—" : "через " + (ms >= 3_600_000 ? (ms / 3_600_000) + " ч" : (ms / 60_000) + " мин"));
     }
 
     private void renderVolume() {

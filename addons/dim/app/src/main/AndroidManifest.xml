@@ -6,6 +6,7 @@
 
     <!-- alerts.in.ua / ubilling (alerts), Open-Meteo (weather), Cloudflare (speed test), Tuya (Smart Life). -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- A home screen lists every TV app to launch it. -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
     <!-- Remote and headphones status by the clock (connected, battery). -->

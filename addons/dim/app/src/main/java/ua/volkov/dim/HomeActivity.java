@@ -302,6 +302,7 @@ public final class HomeActivity extends Activity {
         if (favRow != null && favRow.getChildCount() > 0) favRow.getChildAt(0).requestFocus();
         // over ADB: am start -n ua.volkov.dim/.HomeActivity --ez panel true
         if (intent != null && intent.getBooleanExtra("panel", false)) main.postDelayed(this::openPanel, 300);
+        if (intent != null && intent.getBooleanExtra("apps", false)) main.postDelayed(() -> showApps(true), 300);
     }
 
     @Override
