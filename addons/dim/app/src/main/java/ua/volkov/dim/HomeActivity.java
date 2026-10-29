@@ -169,6 +169,63 @@ public final class HomeActivity extends Activity {
             main.postDelayed(this, 1000);
         }
     };
+    // "Для тебя" now and then gives way to another line about the films, by time of day
+    private int headlineIdx;
+    private final Runnable headlineTick = new Runnable() {
+        @Override
+        public void run() {
+            rotateHeadline();
+            main.postDelayed(this, 12_000);
+        }
+    };
+
+    private List<String> headlines() {
+        List<String> out = new ArrayList<>();
+        java.util.Calendar c = java.util.Calendar.getInstance();
+        int h = c.get(java.util.Calendar.HOUR_OF_DAY), d = c.get(java.util.Calendar.DAY_OF_WEEK);
+        boolean weekend = d == java.util.Calendar.FRIDAY || d == java.util.Calendar.SATURDAY || d == java.util.Calendar.SUNDAY;
+        out.add("Для тебя");
+        out.add("Сегодня на экране");
+        if (h >= 5 && h < 12) out.add("Утренний сеанс");
+        else if (h < 18 && h >= 12) out.add("Дневной сеанс");
+        else if (h >= 18 && h < 23) out.add("Выбор на вечер");
+        else out.add("Ночной сеанс");
+        out.add("Успей посмотреть");
+        out.add("Похоже на то, что ты смотрел");
+        if (weekend && h >= 16) out.add("Кино на выходные");
+        else if (h >= 18 && h < 23) out.add("Вечером под плед");
+        else if (h >= 23 || h < 5) out.add("Ещё одну серию?");
+        else out.add("Не пропусти");
+        return out;
+    }
+
+    private void rotateHeadline() {
+        if (appsShown || titleBig == null) return;
+        String next;
+        if (!"must".equals(heroMode)) {
+            headlineIdx = 0;
+            next = "Для тебя";
+        } else {
+            List<String> all = headlines();
+            headlineIdx = (headlineIdx + 1) % all.size();
+            next = all.get(headlineIdx);
+        }
+        if (next.contentEquals(titleBig.getText())) return;
+        // the old line slides up and fades, the new one rises in from below
+        titleBig.animate().cancel();
+        titleBig.animate().alpha(0f).translationY(-px(8)).setDuration(220).withEndAction(() -> {
+            if (appsShown) {
+                titleBig.setAlpha(1f);
+                titleBig.setTranslationY(0f);
+                return;
+            }
+            titleBig.setText(next);
+            titleBig.setTranslationY(px(8));
+            titleBig.animate().alpha(1f).translationY(0f).setDuration(380)
+                    .setInterpolator(new android.view.animation.DecelerateInterpolator(2f)).start();
+        }).start();
+    }
+
     private final Runnable slowTick = new Runnable() {
         @Override
         public void run() {
@@ -213,6 +270,7 @@ public final class HomeActivity extends Activity {
         Refresher.kick(this, false);
         main.post(tick);
         main.post(slowTick);
+        main.postDelayed(headlineTick, 12_000);
         if (ambientStart == 0) ambientStart = SystemClock.elapsedRealtime();
         main.post(ambientTick);
         renderFavs();
@@ -224,6 +282,7 @@ public final class HomeActivity extends Activity {
         super.onPause();
         main.removeCallbacks(tick);
         main.removeCallbacks(slowTick);
+        main.removeCallbacks(headlineTick);
         main.removeCallbacks(ambientTick);
         getContentResolver().unregisterContentObserver(observer);
     }
@@ -455,6 +514,8 @@ public final class HomeActivity extends Activity {
         selectTab(apps);
         hideHint();
         String head = apps ? "Все приложения" : "Для тебя";
+        headlineIdx = 0;
+        titleBig.setTranslationY(0f);
         if (animate) {
             // the title row dips and comes back with the new words
             titleBig.animate().cancel();
@@ -466,6 +527,8 @@ public final class HomeActivity extends Activity {
             caption.animate().alpha(0f).setDuration(110)
                     .withEndAction(() -> caption.animate().alpha(1f).setDuration(220).start()).start();
         } else {
+            titleBig.animate().cancel();
+            titleBig.setAlpha(1f);
             titleBig.setText(head);
         }
         if (apps) caption.setText("Удерживай OK, чтобы добавить приложение в избранное на Главной");
