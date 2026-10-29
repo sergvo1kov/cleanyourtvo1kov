@@ -9,9 +9,9 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * Flick TV's data, read through its DataProvider: the film row, alerts, weather, Smart Life, TorrServe.
- * Keys and tokens stay in Flick TV; Glass only gets the results. All calls block: call them off the main
- * thread. When Flick TV is missing or older, every call answers empty.
+ * The few things Glass asks Flick TV, when it is installed: switching the Home button between the two,
+ * standby through its service, and a one-time copy of its keys. Glass's data is its own (Data). All
+ * calls block: call them off the main thread. When Flick TV is missing, every call answers empty.
  */
 final class Flick {
     static final String PKG = "ua.volkov.dim";
@@ -97,6 +97,16 @@ final class Flick {
     static void setHomeAsync(Context ctx, String target) {
         Context app = ctx.getApplicationContext();
         new Thread(() -> setHome(app, target)).start();
+    }
+
+    /** Flick TV's keys, for a one-time copy into Glass; null when Flick TV is missing or older. */
+    static JSONObject export(Context ctx) {
+        try {
+            String s = call(ctx, "export", null, null);
+            return s == null ? null : new JSONObject(s);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     static Intent flickHome() {

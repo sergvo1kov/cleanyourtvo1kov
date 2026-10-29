@@ -1,4 +1,9 @@
-**Flick TV 2.8** — a home screen for Android TV / Google TV by Serhii Volkov (@sergvo1kov), built on CleanYourTV.
+**Flick TV 2.9** — a home screen for Android TV / Google TV by Serhii Volkov (@sergvo1kov), built on CleanYourTV.
+
+**New in 2.9: two independent home screens**
+- Flick TV Glass now keeps its own keys and fetches its own data, so either app works with the other removed. Glass can copy Flick TV's keys once ("Импорт из Flick TV").
+- Each app has its own Home service; the switch turns on the chosen one (needs `adb shell pm grant ua.volkov.dim android.permission.WRITE_SECURE_SETTINGS`, once).
+- The fog glyph shows as an emoji, not an empty box.
 
 **New in 2.8: Flick TV Glass**
 - A second, tvOS-style home screen (Flick TV Glass, its own app and release) reads Flick TV's films, alerts, weather and Smart Life through a signature-protected DataProvider, so keys are entered once.

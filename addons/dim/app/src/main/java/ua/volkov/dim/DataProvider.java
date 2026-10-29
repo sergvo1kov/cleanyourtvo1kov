@@ -74,6 +74,14 @@ public final class DataProvider extends ContentProvider {
                     Store.prefs(ctx).edit().putString(Store.HOME_TARGET, "glass".equals(arg) ? "glass" : "flick").apply();
                     out.putString("json", "{}");
                     break;
+                case "export": {
+                    // Glass copies these once, when the person presses "Импорт из Flick TV" there
+                    JSONObject k = new JSONObject();
+                    for (String key : new String[]{Store.ALERTS_TOKEN, Store.TUYA_ID, Store.TUYA_SECRET, Store.TMDB_KEY,
+                            Store.MUST_NICK, Store.TG_CHANNELS}) k.put(key, Store.str(ctx, key));
+                    out.putString("json", k.toString());
+                    break;
+                }
                 default:
                     out.putString("json", "{}");
             }

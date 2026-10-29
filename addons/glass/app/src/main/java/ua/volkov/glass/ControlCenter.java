@@ -138,13 +138,13 @@ final class ControlCenter extends Panel {
         ui.plate(alert, 16, v -> {
             alertSub.setText("Обновляю данные о тревогах…");
             a.background(() -> {
-                Flick.refresh(a);
+                Data.refresh(a);
                 try {
                     Thread.sleep(4000);
                 } catch (InterruptedException ignored) {
                     // fine
                 }
-                JSONObject st = Flick.status(a);
+                JSONObject st = Data.status(a);
                 a.post(() -> {
                     a.status = st;
                     render();
@@ -159,7 +159,7 @@ final class ControlCenter extends Panel {
         r3.addView(round(R.drawable.g_moon, "Сон", v -> {
             close();
             a.background(() -> {
-                boolean ok = Flick.sleep(a);
+                boolean ok = Data.sleep(a);
                 if (!ok) a.post(() -> Toast.makeText(a, "Сон доступен со службой «Flick TV: кнопка Home»", Toast.LENGTH_LONG).show());
             });
         }));
@@ -170,12 +170,12 @@ final class ControlCenter extends Panel {
         torrSub = (TextView) torr.getChildAt(1);
         r3.addView(torr);
         r3.addView(round(R.drawable.g_refresh, "Обновить", v -> {
-            a.background(() -> Flick.refresh(a));
+            a.background(() -> Data.refresh(a));
             Toast.makeText(a, "Обновляю тревоги, погоду и Smart Life", Toast.LENGTH_SHORT).show();
         }));
         r3.addView(round(R.drawable.g_swap, "Flick TV", v -> {
             close();
-            a.background(() -> Flick.setHome(a, "flick"));
+            a.background(() -> Home.choose(a, "flick"));
             try {
                 a.startActivity(Flick.flickHome());
             } catch (RuntimeException e) {
@@ -248,7 +248,7 @@ final class ControlCenter extends Panel {
                 boolean now = !Boolean.TRUE.equals(btn.getTag());
                 ui.setOn(btn, now);
                 a.background(() -> {
-                    boolean ok = Flick.toggle(a, id);
+                    boolean ok = Data.toggle(a, id);
                     if (!ok) a.post(() -> {
                         ui.setOn(btn, !now);
                         Toast.makeText(a, name + ": не удалось", Toast.LENGTH_SHORT).show();

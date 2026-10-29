@@ -10,8 +10,8 @@ android {
         applicationId 'ua.volkov.dim'
         minSdk 26
         targetSdk 34
-        versionCode 10
-        versionName "2.8"
+        versionCode 11
+        versionName "2.9"
     }
 
     // Fork: one fixed key for every build, so a new APK installs over the last one on the TV.

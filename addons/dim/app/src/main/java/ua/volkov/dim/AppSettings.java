@@ -61,7 +61,7 @@ final class AppSettings {
                         default:
                             if (!glass) break;
                             // Home now opens Glass; Glass has the button to come back
-                            Store.prefs(a).edit().putString(Store.HOME_TARGET, "glass").apply();
+                            HomeSwitch.choose(a, "glass");
                             a.startActivity(new Intent().setClassName(DataProvider.GLASS, DataProvider.GLASS_HOME)
                                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
                     }

@@ -72,7 +72,7 @@ final class SettingsPanel extends Panel {
         section(list, "Лаунчер");
         first = plate(list, R.drawable.qp_home, "Главный экран", "Glass  ›", v -> {
             close();
-            a.background(() -> Flick.setHome(a, "flick"));
+            a.background(() -> Home.choose(a, "flick"));
             try {
                 a.startActivity(Flick.flickHome());
                 Toast.makeText(a, "Home теперь открывает Flick TV", Toast.LENGTH_SHORT).show();
@@ -109,16 +109,12 @@ final class SettingsPanel extends Panel {
                 i -> p.edit().putInt("scrim", i).apply());
 
         section(list, "Сервисы");
-        plate(list, R.drawable.qp_gear, "Ключи и сервисы", "в Flick TV  ›", v -> {
+        plate(list, R.drawable.qp_gear, "Ключи и сервисы", "тревоги, Smart Life, TMDB, Must  ›", v -> {
             close();
-            try {
-                a.startActivity(Flick.flickKeys());
-            } catch (RuntimeException e) {
-                Toast.makeText(a, "Flick TV не установлен", Toast.LENGTH_SHORT).show();
-            }
+            a.post(a::openKeys);
         });
         plate(list, R.drawable.g_refresh, "Обновить данные", "тревоги, погода, Smart Life", v -> {
-            a.background(() -> Flick.refresh(a));
+            a.background(() -> Data.refresh(a));
             Toast.makeText(a, "Обновляю", Toast.LENGTH_SHORT).show();
         });
 

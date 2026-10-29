@@ -93,6 +93,7 @@ public final class MainActivity extends Activity {
     private WeatherPanel weather;
     private SettingsPanel settings;
     private ProfilePanel profile;
+    private KeysPanel keys;
     private String statusKey;
 
     private final SimpleDateFormat clock = new SimpleDateFormat("H:mm", Locale.getDefault());
@@ -142,7 +143,7 @@ public final class MainActivity extends Activity {
         Context app = getApplicationContext();
         Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
             try {
-                Flick.setHome(app, "flick");
+                Home.fallback(app);
             } catch (Throwable ignored) {
                 // nothing more to do
             }
@@ -156,6 +157,7 @@ public final class MainActivity extends Activity {
         weather = new WeatherPanel(this, root, ui);
         settings = new SettingsPanel(this, root, ui);
         profile = new ProfilePanel(this, root, ui);
+        keys = new KeysPanel(this, root, ui);
         renderDock();
         if (dock.getChildCount() > 0) dock.getChildAt(0).requestFocus();
     }
@@ -163,7 +165,6 @@ public final class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        Flick.setHomeAsync(this, "glass");
         main.post(tick);
         main.post(slow);
         main.post(feedTick);
@@ -198,7 +199,8 @@ public final class MainActivity extends Activity {
 
     boolean panelOpen() {
         return (control != null && control.isOpen()) || (weather != null && weather.isOpen())
-                || (settings != null && settings.isOpen()) || (profile != null && profile.isOpen());
+                || (settings != null && settings.isOpen()) || (profile != null && profile.isOpen())
+                || (keys != null && keys.isOpen());
     }
 
     void closePanels() {
@@ -206,6 +208,18 @@ public final class MainActivity extends Activity {
         if (weather != null) weather.close();
         if (settings != null) settings.close();
         if (profile != null) profile.close();
+        if (keys != null) keys.close();
+    }
+
+    void openKeys() {
+        keys.open();
+    }
+
+    /** New keys: fetch everything again with them. */
+    void keysChanged() {
+        feedSeed++;
+        loadFeed();
+        loadStatus();
     }
 
     void openProfile() {
@@ -416,7 +430,7 @@ public final class MainActivity extends Activity {
         Context app = getApplicationContext();
         int seed = feedSeed;
         io.execute(() -> {
-            JSONArray f = Flick.feed(app, seed);
+            JSONArray f = Data.feed(app, seed);
             main.post(() -> {
                 if (f.length() == 0) {
                     if (feed.length() == 0) showEmpty();
@@ -431,9 +445,8 @@ public final class MainActivity extends Activity {
     }
 
     private void showEmpty() {
-        title.setText(Flick.installed(this) ? "Для тебя" : "Нужен Flick TV");
-        meta.setText(Flick.installed(this) ? "Фильмы появятся, когда Flick TV загрузит Must, Lampa и новинки"
-                : "Glass берёт фильмы, тревоги и Smart Life из Flick TV");
+        title.setText("Для тебя");
+        meta.setText("Фильмы появятся, когда загрузятся Must, Lampa и новинки. Ключи: Настройки → Ключи и сервисы");
         overview.setText("");
     }
 
@@ -456,7 +469,7 @@ public final class MainActivity extends Activity {
         if (d == null) {
             Context app = getApplicationContext();
             io.execute(() -> {
-                JSONObject got = Flick.details(app, film);
+                JSONObject got = Data.details(app, film);
                 main.post(() -> {
                     details.put(key(film), got);
                     if (feed.optJSONObject(idx) == film) {
@@ -582,7 +595,7 @@ public final class MainActivity extends Activity {
             String id = d != null ? d.optString("tmdb") : film.optString("tmdb");
             String media = d != null ? d.optString("media") : film.optString("media");
             if (id.isEmpty()) {
-                JSONObject f = Flick.find(app, film);
+                JSONObject f = Data.find(app, film);
                 id = f.optString("tmdb");
                 media = f.optString("media");
             }
@@ -608,7 +621,7 @@ public final class MainActivity extends Activity {
     private void loadStatus() {
         Context app = getApplicationContext();
         io.execute(() -> {
-            JSONObject s = Flick.status(app);
+            JSONObject s = Data.status(app);
             main.post(() -> {
                 status = s;
                 renderCapsules();
