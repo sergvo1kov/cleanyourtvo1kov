@@ -4,6 +4,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.drawable.GradientDrawable;
 import android.media.tv.TvContract;
 import android.media.tv.TvInputInfo;
 import android.media.tv.TvInputManager;
@@ -36,6 +37,8 @@ final class ControlCenter extends Panel {
     private TextView time, alertHead, alertSub, netSub, btSub, torrSub;
     private LinearLayout lights;
     private View first;
+    private FrameLayout avatar;
+    private ImageView avatarImg;
 
     ControlCenter(MainActivity a, FrameLayout root, Ui ui) {
         super(a, root, ui);
@@ -59,7 +62,25 @@ final class ControlCenter extends Panel {
         head.setGravity(Gravity.CENTER_VERTICAL);
         time = ui.text("", 14, Ui.WHITE, true);
         head.addView(time, new LinearLayout.LayoutParams(0, -2, 1));
-        head.addView(ui.text("Пункт управления", 11, Ui.SUB, false));
+        head.addView(ui.text("Пункт управления", 11, Ui.SUB, false), ui.lp(-2, -2, 0, 0, 10, 0));
+        // the profile picture: OK chooses another
+        avatar = new FrameLayout(a);
+        GradientDrawable ring = new GradientDrawable();
+        ring.setShape(GradientDrawable.OVAL);
+        ring.setColor(0);
+        ring.setStroke(ui.px(2), 0);
+        avatar.setForeground(ring);
+        avatarImg = new ImageView(a);
+        avatarImg.setImageDrawable(new Avatar(Avatar.current(a), ui.px(34)));
+        avatar.addView(avatarImg, new FrameLayout.LayoutParams(-1, -1));
+        avatar.setFocusable(true);
+        avatar.setClickable(true);
+        avatar.setOnFocusChangeListener((v, has) -> {
+            ring.setStroke(ui.px(2), has ? 0xF2FFFFFF : 0);
+            v.animate().scaleX(has ? 1.12f : 1f).scaleY(has ? 1.12f : 1f).setDuration(160).start();
+        });
+        avatar.setOnClickListener(v -> a.openProfile());
+        head.addView(avatar, ui.lp(34, 34, 0, 0, 0, 0));
         s.addView(head, ui.lp(-1, -2, 4, 0, 4, 12));
 
         // StandBy big tile + network and Bluetooth
@@ -179,6 +200,7 @@ final class ControlCenter extends Panel {
     }
 
     void render() {
+        if (avatarImg != null) avatarImg.setImageDrawable(new Avatar(Avatar.current(a), ui.px(34)));
         if (time == null) return;
         time.setText(new SimpleDateFormat("H:mm", Locale.getDefault()).format(new Date()));
         JSONObject st = a.status;

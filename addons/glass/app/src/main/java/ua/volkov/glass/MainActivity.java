@@ -87,6 +87,8 @@ public final class MainActivity extends Activity {
     private ControlCenter control;
     private WeatherPanel weather;
     private SettingsPanel settings;
+    private ProfilePanel profile;
+    private String weatherKey, statusKey;
 
     private final SimpleDateFormat clock = new SimpleDateFormat("H:mm", Locale.getDefault());
 
@@ -148,6 +150,7 @@ public final class MainActivity extends Activity {
         control = new ControlCenter(this, root, ui);
         weather = new WeatherPanel(this, root, ui);
         settings = new SettingsPanel(this, root, ui);
+        profile = new ProfilePanel(this, root, ui);
         renderDock();
         if (dock.getChildCount() > 0) dock.getChildAt(0).requestFocus();
     }
@@ -190,13 +193,25 @@ public final class MainActivity extends Activity {
 
     boolean panelOpen() {
         return (control != null && control.isOpen()) || (weather != null && weather.isOpen())
-                || (settings != null && settings.isOpen());
+                || (settings != null && settings.isOpen()) || (profile != null && profile.isOpen());
     }
 
     void closePanels() {
         if (control != null) control.close();
         if (weather != null) weather.close();
         if (settings != null) settings.close();
+        if (profile != null) profile.close();
+    }
+
+    void openProfile() {
+        profile.open();
+    }
+
+    /** A new profile picture: the capsule and the Control Center follow. */
+    void avatarChanged() {
+        statusCap.setText("");
+        renderCapsules();
+        if (control.isOpen()) control.render();
     }
 
     // ------------------------------------------------------------------ layout
@@ -294,6 +309,11 @@ public final class MainActivity extends Activity {
         statusCap = ui.text("", 12, Ui.WHITE, true);
         statusCap.setGravity(Gravity.CENTER);
         capsule(statusCap, v -> control.open());
+        statusCap.setPadding(ui.px(14), 0, ui.px(6), 0);   // the avatar sits close to the capsule's round end
+        statusCap.setOnLongClickListener(v -> {
+            profile.open();
+            return true;
+        });
         root.addView(statusCap, ui.flp(-2, 40, Gravity.END | Gravity.TOP, 0, 32, 48, 0));
 
         // all apps, under the dock when it moves up
@@ -545,12 +565,46 @@ public final class MainActivity extends Activity {
     private void renderCapsules() {
         JSONObject w = status.optJSONObject("weather");
         String wt = w == null || w.optLong("at") == 0 ? "☁" : Ui.glyph(w.optInt("code"), w.optBoolean("day", true)) + "  " + Ui.deg(w.optInt("temp"));
-        if (!TextUtils.equals(weatherCap.getText(), wt)) weatherCap.setText(wt);
         JSONObject a = status.optJSONObject("alert");
         int state = a == null ? -1 : a.optInt("state", -1);
-        String dot = state == 1 ? "🔴" : state == 2 ? "🟠" : state == 0 ? "🟢" : "⚪";
-        String st = clock.format(new Date()) + "   " + dot;
-        if (!TextUtils.equals(statusCap.getText(), st)) statusCap.setText(st);
+        // the alert state is a tiny dot after the temperature: there, but quiet
+        int dot = state == 1 ? 0xFFFF453A : state == 2 ? 0xFFFF9F0A : state == 0 ? 0xFF30D158 : 0x66FFFFFF;
+        String wkey = wt + "|" + dot;
+        if (!wkey.equals(weatherKey)) {
+            weatherKey = wkey;
+            android.text.SpannableStringBuilder b = new android.text.SpannableStringBuilder(wt).append("   ");
+            int at = b.length();
+            b.append("●");
+            b.setSpan(new android.text.style.AbsoluteSizeSpan(7, true), at, at + 1, 0);
+            b.setSpan(new android.text.style.ForegroundColorSpan(dot), at, at + 1, 0);
+            b.setSpan(new android.text.style.SuperscriptSpan() {
+                @Override
+                public void updateDrawState(android.text.TextPaint tp) {
+                    tp.baselineShift += (int) (tp.ascent() / 3);
+                }
+
+                @Override
+                public void updateMeasureState(android.text.TextPaint tp) {
+                    tp.baselineShift += (int) (tp.ascent() / 3);
+                }
+            }, at, at + 1, 0);
+            weatherCap.setText(b);
+        }
+        // the clock, then the profile picture
+        String time = clock.format(new Date());
+        int av = Avatar.current(this);
+        String skey = time + "|" + av;
+        if (!skey.equals(statusKey) || statusCap.getText().length() == 0) {
+            statusKey = skey;
+            android.text.SpannableStringBuilder b = new android.text.SpannableStringBuilder(time).append("   ");
+            int at = b.length();
+            b.append("\uFFFC");
+            Avatar d = new Avatar(av, ui.px(30));
+            int align = android.os.Build.VERSION.SDK_INT >= 29 ? android.text.style.DynamicDrawableSpan.ALIGN_CENTER
+                    : android.text.style.DynamicDrawableSpan.ALIGN_BOTTOM;
+            b.setSpan(new android.text.style.ImageSpan(d, align), at, at + 1, 0);
+            statusCap.setText(b);
+        }
     }
 
     // ------------------------------------------------------------------ dock and apps

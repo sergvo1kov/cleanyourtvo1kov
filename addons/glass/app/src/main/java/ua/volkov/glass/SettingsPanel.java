@@ -80,6 +80,10 @@ final class SettingsPanel extends Panel {
                 Toast.makeText(a, "Flick TV не установлен", Toast.LENGTH_SHORT).show();
             }
         });
+        plate(list, R.drawable.qp_home, "Профиль", Avatar.EMOJI[Avatar.current(a)] + "  " + Avatar.NAMES[Avatar.current(a)] + "  ›", v -> {
+            close();
+            a.post(() -> a.openProfile());
+        });
         TextView[] auto = new TextView[1];
         View autoPlate = plate(list, R.drawable.qp_play, "Фильмы сменяются сами",
                 p.getBoolean("autoplay", true) ? "Вкл" : "Выкл", null);
