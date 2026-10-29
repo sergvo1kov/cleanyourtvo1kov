@@ -115,7 +115,9 @@ final class QuickPanel {
         bg.setStroke(1, light ? 0x1F000000 : 0x26FFFFFF);
         s.setBackground(bg);
         s.setElevation(px(24));
+        // a focused tile grows a little: let it draw over the sheet's padding instead of being cut off
         s.setClipChildren(false);
+        s.setClipToPadding(false);
 
         s.addView(text("Настройки", 17, txt, true), margins(4, 0, 0, 10));
 
@@ -428,6 +430,7 @@ final class QuickPanel {
     private LinearLayout row() {
         LinearLayout r = new LinearLayout(a);
         r.setClipChildren(false);
+        r.setClipToPadding(false);
         return r;
     }
 
