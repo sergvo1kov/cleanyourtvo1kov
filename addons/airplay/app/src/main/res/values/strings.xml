@@ -9,7 +9,7 @@
 <resources>
 
     <!-- ── App-wide ────────────────────────────────────────────── -->
-    <string name="app_name">Flick AirPlay</string>
+    <string name="app_name">AirPlay</string>
 
     <!-- ── Navigation ──────────────────────────────────────────── -->
     <string name="nav_home">Home</string>

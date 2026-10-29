@@ -5,5 +5,5 @@
 -->
 <resources>
     <!-- Google TV users see this device label in the AirPlay picker -->
-    <string name="app_name">Flick AirPlay</string>
+    <string name="app_name">AirPlay</string>
 </resources>

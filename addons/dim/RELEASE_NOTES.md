@@ -12,7 +12,7 @@
 - Now Playing is read off the main thread, so the screen no longer stalls while music plays.
 
 **New in 3.0: AirPlay**
-- An AirPlay button in the bottom row (added once, next to the lights) opens Flick AirPlay, the separate receiver app; it shows the track while the phone plays.
+- An AirPlay button in the bottom row (added once, next to the lights) opens AirPlay, the separate receiver app; it shows the track while the phone plays.
 - What plays over AirPlay shows as Now Playing, like any music app.
 
 **New in 2.7: faster**
