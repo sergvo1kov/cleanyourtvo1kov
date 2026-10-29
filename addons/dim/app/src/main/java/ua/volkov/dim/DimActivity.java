@@ -49,6 +49,8 @@ public final class DimActivity extends Activity {
     private TextView updated, alertDot, alertHead, alertSub, alertList;
     private TextView wIcon, wTemp, wWords, wMore;
     private TextView netHead, netSpeed, netHint;
+    private TextView torrHead, torrSub;
+    private static final String TORRSERVE = "ru.yourok.torrserve";
     private LinearLayout devices, news;
     private LinearLayout npBox;
     private android.widget.ImageView npArt;
@@ -161,7 +163,14 @@ public final class DimActivity extends Activity {
         net.addView(netSpeed, margins(0, 8, 0, 0));
         netHint = text("OK — проверить скорость", 13, FAINT, false);
         net.addView(netHint, margins(0, 10, 0, 0));
-        row2.addView(net, weight(2, 0, 0, 20, 0));
+        row2.addView(net, weight(1.4f, 0, 0, 20, 0));
+
+        LinearLayout torr = card(v -> openTorrServe());
+        torrHead = text("TorrServe", 22, WHITE, true);
+        torr.addView(torrHead);
+        torrSub = text("проверка…", 16, DIM, false);
+        torr.addView(torrSub, margins(0, 8, 0, 0));
+        row2.addView(torr, weight(1, 0, 0, 20, 0));
 
         LinearLayout settings = card(v -> openSettings());
         settings.addView(text("Настройки", 22, WHITE, true));
@@ -352,6 +361,7 @@ public final class DimActivity extends Activity {
             netHint.setText(sAt == 0 ? "OK — проверить скорость" : "Проверено в " + hhmm(sAt) + "  ·  OK — ещё раз");
         }
 
+        checkTorrServe();
         renderNews(p);
         renderDevices(p);
     }
@@ -471,6 +481,30 @@ public final class DimActivity extends Activity {
     }
 
     // ---------------------------------------------------------------- actions
+
+    private void checkTorrServe() {
+        new Thread(() -> {
+            String v = TorrServe.version();
+            main.post(() -> {
+                boolean installed = getPackageManager().getLaunchIntentForPackage(TORRSERVE) != null
+                        || getPackageManager().getLeanbackLaunchIntentForPackage(TORRSERVE) != null;
+                torrHead.setText(v != null ? "TorrServe ✓" : "TorrServe");
+                torrSub.setText(!installed ? "не установлен"
+                        : v == null ? "не отвечает  ·  OK — открыть" : "Работает  ·  " + v);
+            });
+        }).start();
+    }
+
+    private void openTorrServe() {
+        android.content.Intent i = getPackageManager().getLeanbackLaunchIntentForPackage(TORRSERVE);
+        if (i == null) i = getPackageManager().getLaunchIntentForPackage(TORRSERVE);
+        if (i == null) {
+            android.widget.Toast.makeText(this, "TorrServe не установлен", android.widget.Toast.LENGTH_SHORT).show();
+            return;
+        }
+        i.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(i);
+    }
 
     private void runSpeedTest() {
         if (testing) return;

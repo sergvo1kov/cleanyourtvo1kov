@@ -242,7 +242,7 @@ public final class HomeActivity extends Activity {
             endMove();
         } else if (qMoving >= 0) {
             endQuickMove();
-        } else if (appsPage.getVisibility() == View.VISIBLE) {
+        } else if (appsShown) {
             showApps(false);
         }
         // a home screen has nowhere to go back to
@@ -447,20 +447,66 @@ public final class HomeActivity extends Activity {
         }
     }
 
+    private boolean appsShown;
+
     private void showApps(boolean apps) {
+        boolean animate = apps != appsShown && homePage.isLaidOut();
+        appsShown = apps;
         selectTab(apps);
         hideHint();
-        homePage.setVisibility(apps ? View.GONE : View.VISIBLE);
-        titleBig.setText(apps ? "Все приложения" : "Для тебя");
+        String head = apps ? "Все приложения" : "Для тебя";
+        if (animate) {
+            // the title row dips and comes back with the new words
+            titleBig.animate().cancel();
+            caption.animate().cancel();
+            titleBig.animate().alpha(0f).setDuration(110).withEndAction(() -> {
+                titleBig.setText(head);
+                titleBig.animate().alpha(1f).setDuration(220).start();
+            }).start();
+            caption.animate().alpha(0f).setDuration(110)
+                    .withEndAction(() -> caption.animate().alpha(1f).setDuration(220).start()).start();
+        } else {
+            titleBig.setText(head);
+        }
         if (apps) caption.setText("Удерживай OK, чтобы добавить приложение в избранное на Главной");
         else heroMode = "";   // redraw the For you card and its caption
-        appsPage.setVisibility(apps ? View.VISIBLE : View.GONE);
-        if (apps) {
-            renderAppsGrid();
-            if (appsGrid.getChildCount() > 0) {
-                ViewGroup r = (ViewGroup) appsGrid.getChildAt(0);
-                if (r.getChildCount() > 0) r.getChildAt(0).requestFocus();
+        if (apps) renderAppsGrid();
+        View in = apps ? appsPage : homePage, out = apps ? homePage : appsPage;
+        if (animate) {
+            // Apps comes in from the right, Home from the left, with a short crossfade and a slight zoom
+            float d = px(56) * (apps ? 1 : -1);
+            android.view.animation.DecelerateInterpolator ease = new android.view.animation.DecelerateInterpolator(2f);
+            out.animate().cancel();
+            in.animate().cancel();
+            out.animate().alpha(0f).translationX(-d).scaleX(0.97f).scaleY(0.97f).setStartDelay(0).setDuration(170)
+                    .setInterpolator(ease).withEndAction(() -> {
+                        out.setVisibility(View.GONE);
+                        out.setAlpha(1f);
+                        out.setTranslationX(0f);
+                        out.setScaleX(1f);
+                        out.setScaleY(1f);
+                    }).start();
+            in.setVisibility(View.VISIBLE);
+            in.setAlpha(0f);
+            in.setTranslationX(d);
+            in.setScaleX(0.97f);
+            in.setScaleY(0.97f);
+            in.animate().alpha(1f).translationX(0f).scaleX(1f).scaleY(1f).setStartDelay(70).setDuration(300)
+                    .setInterpolator(ease).start();
+        } else {
+            for (View v : new View[]{in, out}) {
+                v.animate().cancel();
+                v.setAlpha(1f);
+                v.setTranslationX(0f);
+                v.setScaleX(1f);
+                v.setScaleY(1f);
             }
+            out.setVisibility(View.GONE);
+            in.setVisibility(View.VISIBLE);
+        }
+        if (apps && appsGrid.getChildCount() > 0) {
+            ViewGroup r = (ViewGroup) appsGrid.getChildAt(0);
+            if (r.getChildCount() > 0) r.getChildAt(0).requestFocus();
         }
     }
 
@@ -588,7 +634,7 @@ public final class HomeActivity extends Activity {
     // ------------------------------------------------------------------ hero
 
     private void renderHero() {
-        if (homePage.getVisibility() != View.VISIBLE) return;
+        if (appsShown) return;
         SharedPreferences p = Store.prefs(this);
         boolean alert = p.getInt(Store.ALERT_STATE, Alerts.UNKNOWN) == Alerts.ALERT;
         track = NowPlaying.current(this);
@@ -793,6 +839,7 @@ public final class HomeActivity extends Activity {
             if (o == null) continue;
             final String title = o.optString("title");
             final String lampaIntent = o.optString("intent");
+            final String year = o.optString("year");
             LinearLayout card = new LinearLayout(this);
             card.setOrientation(LinearLayout.VERTICAL);
             FrameLayout frame = new FrameLayout(this);
@@ -800,7 +847,7 @@ public final class HomeActivity extends Activity {
             frame.setClickable(true);
             frame.setOnClickListener(v -> {
                 if (!lampaIntent.isEmpty()) openIntentUri(lampaIntent, title);
-                else openInLampa(title);
+                else openCard(title, year);
             });
             // the title shows until the poster arrives and covers it
             TextView fallback = text(title, 11, txt, true);
@@ -877,6 +924,30 @@ public final class HomeActivity extends Activity {
         } catch (Exception e) {
             openInLampa(title);
         }
+    }
+
+    /** One press: find the film's TMDB id through Lampa's search and open its card; else Lampa's search. */
+    private void openCard(String title, String year) {
+        if (!LampaLink.installed(this)) {
+            search(title);
+            return;
+        }
+        Toast.makeText(this, "Открываю в Lampa: " + title, Toast.LENGTH_SHORT).show();
+        Context app = getApplicationContext();
+        new Thread(() -> {
+            String[] found = LampaLink.find(app, title, year);
+            main.post(() -> {
+                if (found == null) {
+                    openInLampa(title);
+                    return;
+                }
+                try {
+                    startActivity(LampaLink.cardIntent(found));
+                } catch (ActivityNotFoundException e) {
+                    openInLampa(title);
+                }
+            });
+        }).start();
     }
 
     /** Lampa takes a plain search intent and opens its own search with the title filled in. */
