@@ -313,7 +313,9 @@ final class ControlCenter extends Panel {
         t.setGravity(Gravity.CENTER);
         ImageView i = ui.icon(icon, Ui.WHITE);
         t.addView(i, ui.lp(40, 40, 0, 0, 0, 10));
-        t.addView(ui.text(title, 12, Ui.WHITE, true));
+        TextView name = ui.text(title, 12, Ui.WHITE, true);
+        name.setGravity(Gravity.CENTER);
+        t.addView(name, ui.lp(-1, -2, 0, 0, 0, 0));
         ui.plate(t, 22, click);
         return t;
     }

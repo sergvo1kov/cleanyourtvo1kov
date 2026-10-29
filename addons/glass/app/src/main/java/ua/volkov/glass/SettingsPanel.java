@@ -50,9 +50,12 @@ final class SettingsPanel extends Panel {
         gi.setPadding(ui.px(22), ui.px(22), ui.px(22), ui.px(22));
         gear.addView(gi, new FrameLayout.LayoutParams(-1, -1));
         left.addView(gear, ui.lp(130, 130, 0, 0, 0, 22));
-        left.addView(ui.text("Настройки", 26, Ui.WHITE, true));
-        left.addView(ui.text("Flick TV Glass " + version() + "  ·  Serhii Volkov (@sergvo1kov)", 10, Ui.FAINT, false),
-                ui.lp(-2, -2, 0, 8, 0, 0));
+        TextView head = ui.text("Настройки", 26, Ui.WHITE, true);
+        head.setGravity(Gravity.CENTER);
+        left.addView(head, ui.lp(-1, -2, 0, 0, 0, 0));
+        TextView by = ui.text("Flick TV Glass " + version() + "  ·  Serhii Volkov (@sergvo1kov)", 10, Ui.FAINT, false);
+        by.setGravity(Gravity.CENTER);
+        left.addView(by, ui.lp(-1, -2, 0, 8, 0, 0));
         s.addView(left, new LinearLayout.LayoutParams(0, -1, 1));
 
         ScrollView scroll = new ScrollView(a);
