@@ -593,8 +593,15 @@ public final class MainActivity extends Activity {
     }
 
     /** The picture behind everything changes through a soft blur: sharp, soft, sharp again. */
+    private String pendingArt;
+
     private void setArt(String url) {
         if (url == null || url.isEmpty() || url.equals(shownArt)) return;
+        // behind the apps the frosted picture stays put: a new film there flashed the whole screen
+        if (appsShown) {
+            pendingArt = url;
+            return;
+        }
         shownArt = url;
         // the blurred copy is made off the main thread: on the TV it costs a frame or two
         Images.get(url, b0 -> io.execute(() -> {
@@ -918,6 +925,11 @@ public final class MainActivity extends Activity {
             }, 120);
         } else {
             stageLayers(true);
+            if (pendingArt != null) {
+                String u = pendingArt;
+                pendingArt = null;
+                main.postDelayed(() -> setArt(u), 400);
+            }
             dockBand.animate().translationY(0f).setDuration(320).setInterpolator(ease).withLayer().start();
             info.animate().alpha(1f).setDuration(300).start();
             dots.animate().alpha(1f).setDuration(300).start();
