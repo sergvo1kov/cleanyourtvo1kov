@@ -1,4 +1,10 @@
-**Flick TV 2.6** — a home screen for Android TV / Google TV by Serhii Volkov (@sergvo1kov), built on CleanYourTV.
+**Flick TV 2.7** — a home screen for Android TV / Google TV by Serhii Volkov (@sergvo1kov), built on CleanYourTV.
+
+**New in 2.7: faster**
+- The film row is parsed once and kept, instead of being rebuilt from storage every second by the clock.
+- The clock, date and alert pill only touch the screen when their text changes, so Home no longer lays itself out every second.
+- Must's six "similar" lists download at the same time; Lampa's cards are read every 2 minutes with only the columns used.
+- The six favourites fill the glass band, with equal gaps on the left and right.
 
 **New in 2.6**
 - Settings are split: the settings sheet's «Flick TV» holds the look (theme, film backdrop on/off, Google TV panel, TV settings); every key and service (Must, TMDB, alerts.in.ua, Tuya, Telegram) is entered in the Control Center's Settings.
@@ -19,5 +25,5 @@
 - Settings sheet, three-row apps page, alerts, weather, Smart Life, TorrServe and Now playing from 2.0.
 - `ВЕРНУТЬ-GOOGLE-TV.bat` in the installer zip takes a TV back to the stock Google TV home and removes Flick TV.
 
-Install: download `Flick-TV-2.6.zip`, unzip on a Windows PC with Android platform-tools, run `УСТАНОВИТЬ.bat` (details in `ИНСТРУКЦИЯ.txt`).
+Install: download `Flick-TV-2.7.zip`, unzip on a Windows PC with Android platform-tools, run `УСТАНОВИТЬ.bat` (details in `ИНСТРУКЦИЯ.txt`).
 Tested on an Ergo 55MQ95 Gaming (Google TV, MediaTek). Package `ua.volkov.dim`, Android 8+.

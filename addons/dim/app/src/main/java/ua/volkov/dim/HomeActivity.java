@@ -237,6 +237,7 @@ public final class HomeActivity extends Activity {
         return true;
     }
 
+    private int slowTicks;
     private final Runnable slowTick = new Runnable() {
         @Override
         public void run() {
@@ -246,7 +247,7 @@ public final class HomeActivity extends Activity {
             refreshMust(false);
             refreshFresh(false);
             reshuffleFeed();
-            io.execute(() -> lampa = LampaCards.read(getApplicationContext()));
+            if (slowTicks++ % 4 == 0) io.execute(() -> lampa = LampaCards.read(getApplicationContext()));   // every 2 min
             renderQuick();
             main.postDelayed(this, 30_000);
         }
@@ -282,6 +283,8 @@ public final class HomeActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        Store.prefs(this).registerOnSharedPreferenceChangeListener(feedWatch);
+        feedCache = null;
         HomeRedirectService.allowStock = false;   // our Home is back: the stock one redirects again
         if (AppSettings.light(this) != light) {
             recreate();
@@ -305,6 +308,7 @@ public final class HomeActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
+        Store.prefs(this).unregisterOnSharedPreferenceChangeListener(feedWatch);
         main.removeCallbacks(tick);
         main.removeCallbacks(slowTick);
         main.removeCallbacks(headlineTick);
@@ -618,12 +622,20 @@ public final class HomeActivity extends Activity {
 
     // ------------------------------------------------------------------ title row
 
+    private final SimpleDateFormat dayFormat = new SimpleDateFormat("EEE, d MMMM", new Locale("ru"));
+    private int pillColour;
+
+    /** setText requests a layout pass even for the same words; the clock tick calls this every second. */
+    private static void setIfChanged(TextView t, CharSequence s) {
+        if (!TextUtils.equals(t.getText(), s)) t.setText(s);
+    }
+
     private void renderTitleRow() {
         SharedPreferences p = Store.prefs(this);
-        String date = new SimpleDateFormat("EEE, d MMMM", new Locale("ru")).format(new Date());
+        String date = dayFormat.format(new Date());
         String w = p.getLong(Store.W_AT, 0) == 0 ? "" : "  ·  Одесса " + Weather.deg(p.getInt(Store.W_TEMP, 0))
                 + " " + Weather.words(p.getInt(Store.W_CODE, 0));
-        dateLine.setText(date + w);
+        setIfChanged(dateLine, date + w);
         int state = p.getInt(Store.ALERT_STATE, Alerts.UNKNOWN);
         String scope = Alerts.label(p.getString(Store.ALERT_SCOPE, Alerts.RAION));
         int c;
@@ -641,10 +653,12 @@ public final class HomeActivity extends Activity {
             c = 0xFF8E8E93;
             s = "●  Нет данных о тревогах";
         }
-        alertPill.setText(s);
-
-        alertPill.setTextColor(light ? darker(c) : c);
-        alertPill.setBackground(round((c & 0x00FFFFFF) | 0x29000000, 12, 0));
+        setIfChanged(alertPill, s);
+        if (c != pillColour) {
+            pillColour = c;
+            alertPill.setTextColor(light ? darker(c) : c);
+            alertPill.setBackground(round((c & 0x00FFFFFF) | 0x29000000, 12, 0));
+        }
     }
 
     private void showHint(String text, boolean sticky) {
@@ -764,10 +778,10 @@ public final class HomeActivity extends Activity {
             setBackdrop(null);
         }
         switch (mode) {
-            case "alert": caption.setText("Воздушная тревога  ·  " + Alerts.label(p.getString(Store.ALERT_SCOPE, Alerts.RAION))); updateAlertHero(); break;
-            case "music": caption.setText(track.app + "  ·  Сейчас играет"); updateMusicHero(); break;
-            case "must": caption.setText(""); break;
-            default: caption.setText("Одесса  ·  сейчас");
+            case "alert": setIfChanged(caption, "Воздушная тревога  ·  " + Alerts.label(p.getString(Store.ALERT_SCOPE, Alerts.RAION))); updateAlertHero(); break;
+            case "music": setIfChanged(caption, track.app + "  ·  Сейчас играет"); updateMusicHero(); break;
+            case "must": setIfChanged(caption, ""); break;
+            default: setIfChanged(caption, "Одесса  ·  сейчас");
         }
     }
 
@@ -1033,20 +1047,37 @@ public final class HomeActivity extends Activity {
     }
 
     private volatile JSONArray lampa = new JSONArray();
-    private int lampaCount;
+    private JSONArray lampaSeen;
+    private int lampaHash;
 
     /** The For you row: Lampa's own cards mixed with Must's picks. */
+    private JSONArray feedCache;
+    private final SharedPreferences.OnSharedPreferenceChangeListener feedWatch = (sp, key) -> {
+        if (Store.MUST_LIST.equals(key) || Store.MUST_WANT.equals(key) || Store.FRESH_LIST.equals(key)
+                || Store.TMDB_KEY.equals(key)) feedCache = null;
+    };
+
+    /**
+     * The For you row. Called every second by the clock tick, so the stored lists are parsed only when
+     * one of them, Lampa's cards or the shuffle changes.
+     */
     private JSONArray mustList() {
+        JSONArray l = lampa;
+        if (l != lampaSeen) {   // a new read of Lampa's cards: rebuild only if they really changed
+            lampaSeen = l;
+            int h = l.toString().hashCode();
+            if (h != lampaHash) {
+                lampaHash = h;
+                feedCache = null;
+                heroMode = "";
+            }
+        }
+        if (feedCache != null) return feedCache;
         JSONArray must;
         try {
             must = new JSONArray(Store.prefs(this).getString(Store.MUST_LIST, "[]"));
         } catch (Exception e) {
             must = new JSONArray();
-        }
-        JSONArray l = lampa;
-        if (l.length() != lampaCount) {
-            lampaCount = l.length();
-            heroMode = "";
         }
         JSONArray fresh, want;
         try {
@@ -1057,7 +1088,8 @@ public final class HomeActivity extends Activity {
             fresh = new JSONArray();
             want = new JSONArray();
         }
-        return Fresh.mix(l, rotate(want, feedSeed), rotate(must, feedSeed * 3), rotate(fresh, feedSeed * 2));
+        feedCache = Fresh.mix(l, rotate(want, feedSeed), rotate(must, feedSeed * 3), rotate(fresh, feedSeed * 2));
+        return feedCache;
     }
 
     private int feedSeed;
@@ -1072,6 +1104,7 @@ public final class HomeActivity extends Activity {
         if (now - feedShuffledAt < 40 * 60_000L || hero == null || hero.findFocus() != null) return;
         feedShuffledAt = now;
         feedSeed++;
+        feedCache = null;
         heroMode = "";
     }
 
@@ -1270,6 +1303,11 @@ public final class HomeActivity extends Activity {
 
     private void renderFavs() {
         favRow.removeAllViews();
+        // six tiles fill the glass band exactly, so the gaps at its left and right edges are the same
+        int page = getResources().getDisplayMetrics().widthPixels - px(104);
+        int inner = page - 2 * px(9) - 2 * px(2);
+        int gap = px(11);
+        int fw = (inner - 5 * gap) / 6, fh = Math.round(fw * 72f / 128f);
         for (int i = 0; i < favs.size(); i++) {
             final int idx = i;
             final String pkg = favs.get(i);
@@ -1282,7 +1320,9 @@ public final class HomeActivity extends Activity {
                 favMenu(idx);
                 return true;
             });
-            favRow.addView(tile, lp(128, 72, 0, 0, i == favs.size() - 1 ? 0 : 11, 0));
+            LinearLayout.LayoutParams fl = new LinearLayout.LayoutParams(fw, fh);
+            fl.setMargins(0, 0, i == favs.size() - 1 ? 0 : gap, 0);
+            favRow.addView(tile, fl);
         }
         if (favs.isEmpty()) {
             TextView t = text("Добавь приложения: вкладка «Приложения» → удерживай OK", 13, sub, false);

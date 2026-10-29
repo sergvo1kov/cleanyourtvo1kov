@@ -43,7 +43,7 @@ final class LampaCards {
         for (String table : new String[]{"watch_next_program", "preview_program"}) {
             boolean next = table.startsWith("watch");
             Uri uri = Uri.parse("content://android.media.tv/" + table);
-            try (Cursor c = ctx.getContentResolver().query(uri, null, null, null, null)) {
+            try (Cursor c = query(ctx, uri)) {
                 if (c == null) {
                     dbg.append(table).append(": null\n");
                     continue;
@@ -92,6 +92,17 @@ final class LampaCards {
             // debugging aid only
         }
         return out;
+    }
+
+    private static final String[] COLUMNS = {"package_name", "title", "poster_art_uri", "thumbnail_uri", "intent_uri", "browsable"};
+
+    /** Only the six columns the row uses (the table has 50 and hundreds of rows from other apps). */
+    private static Cursor query(Context ctx, Uri uri) {
+        try {
+            return ctx.getContentResolver().query(uri, COLUMNS, null, null, null);
+        } catch (RuntimeException e) {
+            return ctx.getContentResolver().query(uri, null, null, null, null);
+        }
     }
 
     /**

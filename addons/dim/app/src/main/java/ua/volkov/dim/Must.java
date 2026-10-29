@@ -99,20 +99,32 @@ final class Must {
             }
         }
         // the lists are newest first: seed from the last few things watched
-        List<List<JSONObject>> perSeed = new ArrayList<>();
-        for (int i = 0; i < watched.size() && perSeed.size() < 6; i++) {
-            try {
-                Http.Response s = Http.get(BASE + "/api/products/" + watched.get(i) + "/similars", null, 15_000);
-                dbg.append("similars ").append(watched.get(i)).append(' ').append(s.code).append('\n');
-                if (s.code != 200) continue;
-                JSONArray arr = new JSONArray(s.body);
+        // the six similar lists are fetched at the same time (they used to go one after another)
+        int seeds = Math.min(6, watched.size());
+        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(Math.max(1, seeds));
+        List<java.util.concurrent.Future<List<JSONObject>>> jobs = new ArrayList<>();
+        for (int i = 0; i < seeds; i++) {
+            final long id = watched.get(i);
+            jobs.add(pool.submit(() -> {
+                Http.Response s = Http.get(BASE + "/api/products/" + id + "/similars", null, 15_000);
                 List<JSONObject> rows = new ArrayList<>();
+                if (s.code != 200) return rows;
+                JSONArray arr = new JSONArray(s.body);
                 for (int j = 0; j < arr.length(); j++) rows.add(arr.getJSONObject(j));
-                perSeed.add(rows);
+                return rows;
+            }));
+        }
+        List<List<JSONObject>> perSeed = new ArrayList<>();
+        for (int i = 0; i < jobs.size(); i++) {   // keep the order: the newest watched film first
+            try {
+                List<JSONObject> rows = jobs.get(i).get(20, java.util.concurrent.TimeUnit.SECONDS);
+                dbg.append("similars ").append(watched.get(i)).append(' ').append(rows.size()).append('\n');
+                if (!rows.isEmpty()) perSeed.add(rows);
             } catch (Exception e) {
                 dbg.append("similars error ").append(e).append('\n');
             }
         }
+        pool.shutdownNow();
         // interleave the seeds so one film does not fill the row
         JSONArray out = new JSONArray();
         java.util.Set<Long> seen = new java.util.HashSet<>(skip);
