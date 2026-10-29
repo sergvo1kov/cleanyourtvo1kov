@@ -65,6 +65,7 @@ final class SettingsPanel extends Panel {
         list.setOrientation(LinearLayout.VERTICAL);
         list.setPadding(ui.px(28), ui.px(56), ui.px(56), ui.px(56));   // room for the focused plate to grow
         list.setClipChildren(false);
+        list.setClipToPadding(false);   // or the padding clips the focused plate
         scroll.addView(list);
         SharedPreferences p = a.getSharedPreferences("glass", android.content.Context.MODE_PRIVATE);
 

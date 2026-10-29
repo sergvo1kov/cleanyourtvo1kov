@@ -71,6 +71,8 @@ public final class MainActivity extends Activity {
     private FrameLayout appsWrap;
     private android.graphics.Bitmap currentArt;
     private LinearLayout appsGrid;
+    private String gridSig;
+    private android.graphics.Bitmap softFor, softBlur;
     private TextView weatherCap, statusCap, hint;
     private boolean appsShown;
 
@@ -304,16 +306,14 @@ public final class MainActivity extends Activity {
         appsGrid = new LinearLayout(this);
         appsGrid.setOrientation(LinearLayout.VERTICAL);
         appsGrid.setClipChildren(false);
-        // side and top padding leave room for a focused tile to grow without being cut
-        appsGrid.setPadding(ui.px(24), ui.px(22), ui.px(24), ui.px(48));
+        // a focused tile grows past its cell: the padding must not clip it (LinearLayout clips to its padding by default)
+        appsGrid.setClipToPadding(false);
+        appsGrid.setPadding(ui.px(56), ui.px(20), ui.px(56), ui.px(48));
         appsPage.addView(appsGrid);
         appsWrap.addView(appsPage, new FrameLayout.LayoutParams(-1, -1));
-        // apps that scroll up under the dock fade out instead of running into it
-        View fade = new View(this);
-        fade.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[]{0xF2000000, 0x99000000, 0x00000000}));
-        appsWrap.addView(fade, new FrameLayout.LayoutParams(-1, ui.px(34), Gravity.TOP));
-        root.addView(appsWrap, ui.flp(-1, -1, Gravity.TOP, 32, 170, 32, 0));
+        // apps that scroll up towards the dock fade out row by row instead of being cut off
+        appsPage.setOnScrollChangeListener((v, x, y, ox, oy) -> fadeRows());
+        root.addView(appsWrap, ui.flp(-1, -1, Gravity.TOP, 0, 170, 0, 0));
 
         // the frosted dock
         dockBand = new FrameLayout(this);
@@ -701,13 +701,17 @@ public final class MainActivity extends Activity {
         if (apps) {
             renderGrid();
             float up = -(dockBand.getTop() - ui.px(78));
-            dockBand.animate().translationY(up).setDuration(380).setInterpolator(ease).start();
+            dockBand.animate().translationY(up).setDuration(380).setInterpolator(ease).withLayer().start();
             info.animate().alpha(0f).setDuration(200).start();
             dots.animate().alpha(0f).setDuration(200).start();
             // the stage turns to frosted glass behind the apps
             if (currentArt != null) {
                 soft.animate().cancel();
-                soft.setImageBitmap(Ui.blur(currentArt, 40));
+                if (softFor != currentArt) {
+                    softFor = currentArt;
+                    softBlur = Ui.blur(currentArt, 40);
+                }
+                soft.setImageBitmap(softBlur);
                 soft.animate().alpha(1f).setDuration(380).start();
             }
             dim.animate().alpha(0.72f).setDuration(300).start();
@@ -716,25 +720,37 @@ public final class MainActivity extends Activity {
             appsWrap.setLayoutParams(wl);
             appsWrap.setVisibility(View.VISIBLE);
             appsWrap.setTranslationY(ui.px(40));
-            appsWrap.animate().alpha(1f).translationY(0f).setDuration(380).setInterpolator(ease).start();
+            appsWrap.animate().alpha(1f).translationY(0f).setDuration(380).setInterpolator(ease).withLayer().start();
             appsPage.scrollTo(0, 0);
+            appsPage.post(this::fadeRows);
             main.postDelayed(() -> {
                 if (appsGrid.getChildCount() > 0) ((ViewGroup) appsGrid.getChildAt(0)).getChildAt(0).requestFocus();
             }, 120);
         } else {
-            dockBand.animate().translationY(0f).setDuration(320).setInterpolator(ease).start();
+            dockBand.animate().translationY(0f).setDuration(320).setInterpolator(ease).withLayer().start();
             info.animate().alpha(1f).setDuration(300).start();
             dots.animate().alpha(1f).setDuration(300).start();
             soft.animate().alpha(0f).setDuration(400).start();
             dim.animate().alpha(0f).setDuration(300).start();
-            appsWrap.animate().alpha(0f).translationY(ui.px(40)).setDuration(220)
+            appsWrap.animate().alpha(0f).translationY(ui.px(40)).setDuration(220).withLayer()
                     .withEndAction(() -> appsWrap.setVisibility(View.GONE)).start();
             if (dock.getChildCount() > 0) dock.getChildAt(0).requestFocus();
         }
     }
 
+    /** Rows near the top of the apps page fade as they scroll towards the dock. */
+    private void fadeRows() {
+        int sy = appsPage.getScrollY();
+        int zone = ui.px(70);
+        for (int i = 0; i < appsGrid.getChildCount(); i++) {
+            View row = appsGrid.getChildAt(i);
+            float top = row.getTop() - sy;   // the row's top against the page's top edge
+            float a = top >= 0 ? 1f : Math.max(0f, 1f + top / zone);
+            if (row.getAlpha() != a) row.setAlpha(a);
+        }
+    }
+
     private void renderGrid() {
-        appsGrid.removeAllViews();
         Intent q = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
         List<String> pkgs = new ArrayList<>();
         for (ResolveInfo r : getPackageManager().queryIntentActivities(q, 0)) {
@@ -742,7 +758,12 @@ public final class MainActivity extends Activity {
             if (!pkgs.contains(p) && !p.equals(getPackageName()) && !p.equals("com.gathin.tvhome")) pkgs.add(p);
         }
         Collections.sort(pkgs, (a, b) -> label(a).compareToIgnoreCase(label(b)));
-        int page = getResources().getDisplayMetrics().widthPixels - ui.px(64) - ui.px(48);
+        // the banners are slow to load: build the grid again only when the apps changed
+        String sig = pkgs.toString();
+        if (sig.equals(gridSig) && appsGrid.getChildCount() > 0) return;
+        gridSig = sig;
+        appsGrid.removeAllViews();
+        int page = getResources().getDisplayMetrics().widthPixels - ui.px(112);
         int gap = ui.px(16);
         int w = (page - 5 * gap) / 6, h = Math.round(w * 9f / 16f);
         LinearLayout row = null;
@@ -750,7 +771,7 @@ public final class MainActivity extends Activity {
             if (i % 6 == 0) {
                 row = new LinearLayout(this);
                 row.setClipChildren(false);
-                appsGrid.addView(row, ui.lp(-1, -2, 0, 0, 0, 26));
+                appsGrid.addView(row, ui.lp(-1, -2, 0, 0, 0, 10));
             }
             final String pkg = pkgs.get(i);
             LinearLayout cell = new LinearLayout(this);
@@ -788,7 +809,7 @@ public final class MainActivity extends Activity {
             });
             cell.addView(tile, new LinearLayout.LayoutParams(w, h));
             cell.addView(t, new LinearLayout.LayoutParams(w, -2));
-            ((LinearLayout.LayoutParams) t.getLayoutParams()).topMargin = ui.px(12);
+            ((LinearLayout.LayoutParams) t.getLayoutParams()).topMargin = ui.px(7);
             row.addView(cell, ui.lp(-2, -2, 0, 0, i % 6 == 5 ? 0 : 16, 0));
         }
     }
