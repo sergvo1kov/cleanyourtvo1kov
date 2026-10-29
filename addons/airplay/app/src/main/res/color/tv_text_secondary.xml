@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- tvOS secondary label: 60% white normally, mid grey on the focused (white) row. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true" android:color="#FF6E6E73" />
+    <item android:color="#99EBEBF5" />
+</selector>

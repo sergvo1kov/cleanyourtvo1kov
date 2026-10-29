@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- tvOS top tab bar: dark on the focused white pill, white when selected, dimmed otherwise. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true" android:color="#FF1C1C1E" />
+    <item android:state_selected="true" android:color="#FFFFFFFF" />
+    <item android:color="#99EBEBF5" />
+</selector>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- tvOS row text: white normally, near-black on the white focused row. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true" android:color="#FF1C1C1E" />
+    <item android:color="#FFFFFFFF" />
+</selector>

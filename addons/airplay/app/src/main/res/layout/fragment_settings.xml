@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    fragment_settings.xml — Settings screen, laid out like tvOS Settings: a large glyph + title on
+    the left, the grouped list on the right. Rows are translucent plates that turn white (dark text)
+    and lift when focused; boolean rows show "On"/"Off" at the trailing edge.
+
+    Sections match the AppSettings data model: Display, Protocols, AirPlay, Service, Developer, About.
+-->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:background="@drawable/tv_screen_background"
+    android:baselineAligned="false">
+
+    <!-- Left: glyph + page title -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="2"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <ImageView
+            android:layout_width="150dp"
+            android:layout_height="150dp"
+            android:src="@drawable/ic_airplay_audio"
+            android:alpha="0.9"
+            android:importantForAccessibility="no" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:text="@string/nav_settings"
+            android:textColor="@color/text_primary"
+            android:textSize="34sp"
+            android:fontFamily="@font/inter_semibold" />
+    </LinearLayout>
+
+    <!-- Right: grouped settings list -->
+    <ScrollView
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="3"
+        android:layout_marginTop="104dp"
+        android:clipToPadding="false"
+        android:requiresFadingEdge="vertical"
+        android:fadingEdgeLength="40dp"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:paddingTop="16dp"
+            android:paddingBottom="48dp"
+            android:paddingStart="24dp"
+            android:paddingEnd="64dp">
+
+            <!-- ── Section: Display ────────────────────────────────── -->
+            <include layout="@layout/settings_section_header"
+                android:id="@+id/header_display" />
+
+            <LinearLayout
+                android:id="@+id/row_display_name"
+                android:layout_width="match_parent"
+                android:layout_height="72dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="20dp"
+                android:background="@drawable/focus_ring_selector"
+                android:stateListAnimator="@animator/tv_focus_lift"
+                android:focusable="true">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:duplicateParentState="true"
+                    android:text="@string/setting_display_name"
+                    android:textColor="@color/tv_text_primary"
+                    android:fontFamily="@font/inter_medium"
+                    android:textSize="18sp" />
+
+                <TextView
+                    android:id="@+id/text_display_name_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:duplicateParentState="true"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textColor="@color/tv_text_secondary"
+                    android:textSize="17sp" />
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_marginStart="8dp"
+                    android:duplicateParentState="true"
+                    android:src="@drawable/ic_chevron_right"
+                    android:importantForAccessibility="no" />
+            </LinearLayout>
+
+            <!-- ── Section: Protocols ─────────────────────────────── -->
+            <include layout="@layout/settings_section_header"
+                android:id="@+id/header_protocols"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="32dp" />
+
+            <include layout="@layout/settings_toggle_row"
+                android:id="@+id/row_airplay"
+                android:layout_width="match_parent"
+                android:layout_height="72dp" />
+
+            <!-- ── Section: AirPlay ───────────────────────────────── -->
+            <include layout="@layout/settings_section_header"
+                android:id="@+id/header_airplay"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="32dp" />
+
+            <include layout="@layout/settings_toggle_row"
+                android:id="@+id/row_mirror_audio"
+                android:layout_width="match_parent"
+                android:layout_height="72dp"
+                android:layout_marginBottom="6dp" />
+
+            <include layout="@layout/settings_toggle_row"
+                android:id="@+id/row_pin_auth"
+                android:layout_width="match_parent"
+                android:layout_height="72dp"
+                android:layout_marginBottom="6dp" />
+
+            <include layout="@layout/settings_toggle_row"
+                android:id="@+id/row_airplay2_video"
+                android:layout_width="match_parent"
+                android:layout_height="72dp"
+                android:layout_marginBottom="6dp" />
+
+            <include layout="@layout/settings_toggle_row"
+                android:id="@+id/row_multiroom"
+                android:layout_width="match_parent"
+                android:layout_height="72dp" />
+
+            <!-- ── Section: Service ───────────────────────────────── -->
+            <include layout="@layout/settings_section_header"
+                android:id="@+id/header_service"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="32dp" />
+
+            <include layout="@layout/settings_toggle_row"
+                android:id="@+id/row_start_on_boot"
+                android:layout_width="match_parent"
+                android:layout_height="72dp" />
+
+            <!-- ── Section: Developer ─────────────────────────────── -->
+            <include layout="@layout/settings_section_header"
+                android:id="@+id/header_developer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="32dp" />
+
+            <include layout="@layout/settings_toggle_row"
+                android:id="@+id/row_debug_overlay"
+                android:layout_width="match_parent"
+                android:layout_height="72dp" />
+
+            <!-- ── Section: About ─────────────────────────────────── -->
+            <include layout="@layout/settings_section_header"
+                android:id="@+id/header_about"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="32dp" />
+
+            <LinearLayout
+                android:id="@+id/row_version"
+                android:layout_width="match_parent"
+                android:layout_height="72dp"
+                android:layout_marginBottom="6dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="20dp"
+                android:background="@drawable/focus_ring_selector"
+                android:focusable="false">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/setting_version"
+                    android:textColor="@color/tv_text_primary"
+                    android:fontFamily="@font/inter_medium"
+                    android:textSize="18sp" />
+
+                <TextView
+                    android:id="@+id/text_version_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/tv_text_secondary"
+                    android:textSize="17sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/row_reset"
+                android:layout_width="match_parent"
+                android:layout_height="72dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="20dp"
+                android:background="@drawable/focus_ring_selector"
+                android:stateListAnimator="@animator/tv_focus_lift"
+                android:focusable="true">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/setting_reset_defaults"
+                    android:textColor="@color/status_stopped"
+                    android:fontFamily="@font/inter_medium"
+                    android:textSize="18sp" />
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

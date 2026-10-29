@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- AirPlay audio glyph (concentric arcs over a triangle), drawn for PhairPlay. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.7" android:strokeLineCap="round"
+        android:pathData="M5.2,16.2 A8.6,8.6 0 1 1 18.8,16.2" />
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.7" android:strokeLineCap="round"
+        android:pathData="M8.4,13.9 A4.6,4.6 0 1 1 15.6,13.9" />
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M12,13.6 C12.35,13.6 12.6,13.75 12.8,14.05 L16.6,19.9 C17,20.55 16.55,21.3 15.8,21.3 L8.2,21.3 C7.45,21.3 7,20.55 7.4,19.9 L11.2,14.05 C11.4,13.75 11.65,13.6 12,13.6 Z" />
+</vector>

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Reusable boolean setting row, tvOS style: label (+ subtitle) on the left, "On"/"Off" on the
+     right; the whole row turns white and lifts when focused. The SwitchCompat is kept hidden as the
+     row's checked-state holder (SettingsFragment reads/writes it). -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="72dp"
+    android:layout_marginBottom="6dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingHorizontal="20dp"
+    android:background="@drawable/focus_ring_selector"
+    android:stateListAnimator="@animator/tv_focus_lift"
+    android:focusable="true">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:duplicateParentState="true"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/text_setting_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:duplicateParentState="true"
+            android:textColor="@color/tv_text_primary"
+            android:fontFamily="@font/inter_medium"
+            android:textSize="18sp" />
+
+        <TextView
+            android:id="@+id/text_setting_subtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:duplicateParentState="true"
+            android:textColor="@color/tv_text_secondary"
+            android:textSize="13sp"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/text_setting_value"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:duplicateParentState="true"
+        android:textColor="@color/tv_text_secondary"
+        android:textSize="17sp" />
+
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/switch_setting"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:focusable="false"
+        android:clickable="false" />
+</LinearLayout>

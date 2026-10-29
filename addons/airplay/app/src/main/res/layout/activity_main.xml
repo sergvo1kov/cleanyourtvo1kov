@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    activity_main.xml — Root layout for MainActivity, tvOS style:
+    ┌───────────────────────────────────────────────────────┐
+    │                 ( Home )  ( Settings )                │  ← top tab bar (pills)
+    │                                                       │
+    │                   CONTENT AREA                        │
+    │               (fragment container)                    │
+    └───────────────────────────────────────────────────────┘
+    - The tab bar floats over the content (Home's ambient backdrop runs full-bleed behind it).
+    - The streaming_container overlays everything (full-screen, GONE when idle).
+-->
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_dark">
+
+    <!-- ── Main content area (fragments swap here) ────────────────────── -->
+    <FrameLayout
+        android:id="@+id/content_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipChildren="false"
+        android:clipToPadding="false" />
+
+    <!-- ── Top tab bar ─────────────────────────────────────────────── -->
+    <LinearLayout
+        android:id="@+id/nav_panel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="28dp"
+        android:orientation="horizontal"
+        android:padding="6dp"
+        android:clipChildren="false"
+        android:clipToPadding="false">
+
+        <TextView
+            android:id="@+id/nav_item_home"
+            android:layout_width="wrap_content"
+            android:layout_height="52dp"
+            android:gravity="center"
+            android:paddingHorizontal="28dp"
+            android:text="@string/nav_home"
+            android:textSize="18sp"
+            android:fontFamily="@font/inter_semibold"
+            android:textColor="@color/tv_tab_text"
+            android:background="@drawable/nav_item_selector"
+            android:stateListAnimator="@animator/tv_focus_lift"
+            android:focusable="true"
+            android:nextFocusRight="@id/nav_item_settings"
+            android:nextFocusDown="@id/content_container" />
+
+        <TextView
+            android:id="@+id/nav_item_settings"
+            android:layout_width="wrap_content"
+            android:layout_height="52dp"
+            android:layout_marginStart="8dp"
+            android:gravity="center"
+            android:paddingHorizontal="28dp"
+            android:text="@string/nav_settings"
+            android:textSize="18sp"
+            android:fontFamily="@font/inter_semibold"
+            android:textColor="@color/tv_tab_text"
+            android:background="@drawable/nav_item_selector"
+            android:stateListAnimator="@animator/tv_focus_lift"
+            android:focusable="true"
+            android:nextFocusLeft="@id/nav_item_home"
+            android:nextFocusDown="@id/content_container" />
+    </LinearLayout>
+
+    <!-- ── Full-screen streaming overlay (GONE when idle) ─────────────── -->
+    <FrameLayout
+        android:id="@+id/streaming_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+</FrameLayout>

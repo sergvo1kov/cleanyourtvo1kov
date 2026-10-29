@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    fragment_home.xml — Home = the AirPlay idle screen, tvOS style:
+    a full-bleed ambient AirPlay hero (device name + how to connect), and at the bottom the service
+    status pill and the service controls as tvOS buttons (white + lifted when focused).
+
+    card_airplay / text_device_name / text_page_title are kept (hidden) because HomeFragment still
+    binds and updates them; the hero shows the same information.
+-->
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    android:background="@color/background_dark">
+
+    <com.phairplay.ui.AirPlayIdleView
+        android:id="@+id/idle_hero"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="56dp"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:clipChildren="false"
+        android:clipToPadding="false">
+
+        <!-- Global service state pill -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="18dp"
+            android:paddingVertical="8dp"
+            android:background="@drawable/btn_control_selector">
+
+            <View
+                android:id="@+id/dot_service_state"
+                android:layout_width="9dp"
+                android:layout_height="9dp"
+                android:layout_marginEnd="10dp"
+                android:background="@drawable/status_dot" />
+
+            <TextView
+                android:id="@+id/text_service_state"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/service_state_stopped"
+                android:textColor="@color/text_secondary"
+                android:fontFamily="@font/inter_medium"
+                android:textSize="15sp" />
+        </LinearLayout>
+
+        <!-- Service controls -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:baselineAligned="false"
+            android:clipChildren="false"
+            android:clipToPadding="false">
+
+            <Button
+                android:id="@+id/btn_start"
+                style="@style/TvButton"
+                android:layout_marginEnd="14dp"
+                android:text="@string/action_start"
+                android:nextFocusRight="@id/btn_stop" />
+
+            <Button
+                android:id="@+id/btn_stop"
+                style="@style/TvButton"
+                android:layout_marginEnd="14dp"
+                android:text="@string/action_stop"
+                android:nextFocusLeft="@id/btn_start"
+                android:nextFocusRight="@id/btn_restart" />
+
+            <Button
+                android:id="@+id/btn_restart"
+                style="@style/TvButton"
+                android:text="@string/action_restart"
+                android:nextFocusLeft="@id/btn_stop" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Legacy bindings (see header comment) -->
+    <TextView
+        android:id="@+id/text_page_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/text_device_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone" />
+
+    <include
+        android:id="@+id/card_airplay"
+        layout="@layout/card_protocol_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone" />
+</FrameLayout>
