@@ -38,7 +38,8 @@ final class AppSettings {
                 light ? "Тема: светлая  →  тёмная" : "Тема: тёмная  →  светлая",
                 art ? "Фон с постером фильма: включён  →  выключить" : "Фон с постером фильма: выключен  →  включить",
                 "Панель Google TV (Google Home)",
-                "Настройки телевизора"};
+                "Настройки телевизора",
+                "Обновления: Flick TV и AirPlay"};
         new AlertDialog.Builder(a, dialogTheme(a))
                 .setTitle("Flick TV " + version(a) + "  ·  Serhii Volkov (@sergvo1kov)")
                 .setItems(items, (d, which) -> {
@@ -55,6 +56,7 @@ final class AppSettings {
                         case 3:
                             a.startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
                             break;
+                        case 4: Updater.open(a, dialogTheme(a)); break;
                         default:
                             break;
                     }

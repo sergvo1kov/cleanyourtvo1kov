@@ -292,6 +292,7 @@ public final class HomeActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        Updater.autoCheck(this);
         Store.prefs(this).registerOnSharedPreferenceChangeListener(feedWatch);
         feedCache = null;
         HomeRedirectService.allowStock = false;   // our Home is back: the stock one redirects again

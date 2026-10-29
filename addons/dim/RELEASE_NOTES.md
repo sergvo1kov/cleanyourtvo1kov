@@ -1,4 +1,8 @@
-**Flick TV 3.3** — a home screen for Android TV / Google TV by Serhii Volkov (@sergvo1kov), built on CleanYourTV.
+**Flick TV 3.4** — a home screen for Android TV / Google TV by Serhii Volkov (@sergvo1kov), built on CleanYourTV.
+
+**New in 3.4: updates over the air**
+- Settings → Flick TV → «Обновления» checks this repository's releases for Flick TV and AirPlay, downloads the newer APK over HTTPS and hands it to Android's installer (one confirmation on screen; an APK signed with another key is refused).
+- Home checks quietly at most every 12 hours and shows a note when something is newer. No computer needed any more.
 
 **New in 3.3**
 - Flick TV is the one home screen again: the second home screen and everything that served it (its data provider, the Home switch) are gone.

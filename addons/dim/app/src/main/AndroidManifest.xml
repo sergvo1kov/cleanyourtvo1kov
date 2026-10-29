@@ -8,6 +8,8 @@
 
     <!-- alerts.in.ua / ubilling (alerts), Open-Meteo (weather), Cloudflare (speed test), Tuya (Smart Life). -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Updates over the air from the fork's GitHub releases (Flick TV and AirPlay); Android asks to confirm each one. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- A home screen lists every TV app to launch it. -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
