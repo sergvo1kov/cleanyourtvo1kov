@@ -75,6 +75,7 @@ class NowPlayingScreen @JvmOverloads constructor(
     private val prevButton = ImageView(context)
     private val playPauseButton = ImageView(context)
     private val nextButton = ImageView(context)
+    private val pulse = ImageView(context)
     private val captionRow = LinearLayout(context)
     private val captionIcon = ImageView(context)
     private val captionText: TextView
@@ -137,6 +138,14 @@ class NowPlayingScreen @JvmOverloads constructor(
             }
         }
         addView(artwork, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
+        // Flick AirPlay: the play/pause/skip sign that pops over the cover when the remote is pressed
+        pulse.alpha = 0f
+        pulse.scaleType = ImageView.ScaleType.FIT_CENTER
+        pulse.background = android.graphics.drawable.GradientDrawable().apply {
+            shape = android.graphics.drawable.GradientDrawable.OVAL
+            setColor(0x8C000000.toInt())
+        }
+        addView(pulse, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
 
         titleView = text(R.font.inter_semibold, Color.WHITE, maxLines = 2)
         artistView = text(R.font.inter_regular, withAlpha(0.62f), maxLines = 1)
@@ -249,6 +258,14 @@ class NowPlayingScreen @JvmOverloads constructor(
         artwork.layout(artLeft, artTop, artLeft + artSide, artTop + artSide)
         artwork.pivotX = artSide / 2f
         artwork.pivotY = artSide / 2f
+        val ps = artSide * 30 / 100
+        val pp = ps * 22 / 100
+        val pl = artLeft + (artSide - ps) / 2
+        val pt = artTop + (artSide - ps) / 2
+        pulse.setPadding(pp, pp, pp, pp)
+        pulse.layout(pl, pt, pl + ps, pt + ps)
+        pulse.pivotX = ps / 2f
+        pulse.pivotY = ps / 2f
         textBlock.layout(textLeft, textTop, textLeft + textBlock.measuredWidth, textTop + textBlock.measuredHeight)
         backdrop.pivotX = width / 2f
         backdrop.pivotY = height / 2f
@@ -322,6 +339,28 @@ class NowPlayingScreen @JvmOverloads constructor(
      * Briefly reveals the transport controls, highlighting the one the remote just triggered
      * ("playpause", "nextitem", "previtem" …, see DacpClient) — like tvOS on remote interaction.
      */
+    /**
+     * Flick AirPlay: the sign of what the remote just did pops over the cover — small, it grows and
+     * fades away, as on Apple TV. Play/pause shows the state the press leads to.
+     */
+    fun pop(command: String?) {
+        val icon = when (command) {
+            "playpause" -> if (paused) R.drawable.ic_np_play else R.drawable.ic_np_pause
+            "nextitem", "beginff" -> R.drawable.ic_np_next
+            "previtem", "beginrew" -> R.drawable.ic_np_prev
+            else -> return
+        }
+        pulse.setImageResource(icon)
+        pulse.animate().cancel()
+        pulse.alpha = 1f
+        pulse.scaleX = 0.6f
+        pulse.scaleY = 0.6f
+        pulse.animate().scaleX(1.7f).scaleY(1.7f).alpha(0f).setDuration(650)
+            .setInterpolator(DecelerateInterpolator(1.6f)).start()
+        // the cover gives a small nudge too
+        if (command == "playpause") setPaused(!paused)
+    }
+
     fun showControls(command: String?) {
         removeCallbacks(hideControls)
         controlsRow.animate().alpha(1f).setDuration(CONTROLS_FADE_MS).start()

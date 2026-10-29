@@ -418,13 +418,19 @@ class MainActivity : AppCompatActivity() {
                 android.view.KeyEvent.KEYCODE_MEDIA_SKIP_FORWARD -> com.phairplay.airplay.DacpClient.CMD_NEXT
                 android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS,
                 android.view.KeyEvent.KEYCODE_MEDIA_SKIP_BACKWARD -> com.phairplay.airplay.DacpClient.CMD_PREV
+                // Flick AirPlay: on the music screen Left and Right skip back (or to the start) and forward
+                android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> if (currentNowPlaying != null) com.phairplay.airplay.DacpClient.CMD_NEXT else null
+                android.view.KeyEvent.KEYCODE_DPAD_LEFT -> if (currentNowPlaying != null) com.phairplay.airplay.DacpClient.CMD_PREV else null
                 android.view.KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> com.phairplay.airplay.DacpClient.CMD_FF
                 android.view.KeyEvent.KEYCODE_MEDIA_REWIND -> com.phairplay.airplay.DacpClient.CMD_REW
                 else -> null
             }
             if (command != null) {
                 service?.sendAirPlayRemoteCommand(command)
-                if (currentNowPlaying != null) nowPlayingScreen.showControls(command)
+                if (currentNowPlaying != null) {
+                    nowPlayingScreen.showControls(command)
+                    nowPlayingScreen.pop(command)
+                }
                 return true
             }
         }
