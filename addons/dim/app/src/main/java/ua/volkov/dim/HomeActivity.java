@@ -152,9 +152,15 @@ public final class HomeActivity extends Activity {
 
     // hero (music)
     private ImageView npArt;
-    private TextView npKicker, npTitle, npArtist, npPos, npDur, npPlay, npOpen;
+    private TextView npKicker, npTitle, npArtist, npPos, npDur, npOpen;
+    private ImageView npPlay;
     private View npFill;
     private NowPlaying.Track track;
+    // read off the main thread: a session's cover crosses the binder on every read, which stalled the UI
+    private volatile NowPlaying.Track polled;
+    private volatile boolean polling;
+    private GradientDrawable npCard, npFillBg, npPlayBg;
+    private String npPaletteKey;
 
     // quick tiles
     private volatile String torrVersion;
@@ -166,6 +172,7 @@ public final class HomeActivity extends Activity {
     private final Runnable tick = new Runnable() {
         @Override
         public void run() {
+            pollTrack();
             renderHero();
             renderTitleRow();
             main.postDelayed(this, 1000);
@@ -763,11 +770,24 @@ public final class HomeActivity extends Activity {
 
     // ------------------------------------------------------------------ hero
 
+    private void pollTrack() {
+        if (polling) return;
+        polling = true;
+        Context app = getApplicationContext();
+        io.execute(() -> {
+            try {
+                polled = NowPlaying.current(app);
+            } finally {
+                polling = false;
+            }
+        });
+    }
+
     private void renderHero() {
         if (appsShown) return;
         SharedPreferences p = Store.prefs(this);
         boolean alert = p.getInt(Store.ALERT_STATE, Alerts.UNKNOWN) == Alerts.ALERT;
-        track = NowPlaying.current(this);
+        track = polled;
         JSONArray must = mustList();
         String mode = alert ? "alert" : track != null ? "music" : must.length() > 0 ? "must" : "weather";
         if (!mode.equals(heroMode)) {
@@ -805,6 +825,8 @@ public final class HomeActivity extends Activity {
     // music
     private void buildMusicHero() {
         FrameLayout c = heroCard(new int[]{0xFF0A1410, 0xFF13261E, 0xFF0C1813});
+        npCard = (GradientDrawable) c.getBackground();
+        npPaletteKey = null;
         LinearLayout row = new LinearLayout(this);
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(px(17), px(17), px(22), px(17));
@@ -833,7 +855,8 @@ public final class HomeActivity extends Activity {
         track.setBackground(round(0x2EFFFFFF, 2, 0));
         bar.addView(track, new FrameLayout.LayoutParams(-1, -1));
         npFill = new View(this);
-        npFill.setBackground(round(0xFFFF4E45, 2, 0));
+        npFillBg = round(0xFFFF4E45, 2, 0);
+        npFill.setBackground(npFillBg);
         npFill.setPivotX(0);
         bar.addView(npFill, new FrameLayout.LayoutParams(-1, -1));
         info.addView(bar, lp(-1, 3, 0, 12, 0, 0));
@@ -845,11 +868,13 @@ public final class HomeActivity extends Activity {
         info.addView(times, lp(-1, -2, 0, 4, 0, 0));
         LinearLayout ctl = new LinearLayout(this);
         ctl.setGravity(Gravity.CENTER_VERTICAL);
-        ctl.addView(circle("⏮", 29, 0x1FFFFFFF, v -> media(-1)));
-        View play = circle("⏸", 35, 0xFFFF4E45, v -> media(0));
-        npPlay = (TextView) ((FrameLayout) play).getChildAt(0);
-        ctl.addView(play, lp(35, 35, 11, 0, 11, 0));
-        ctl.addView(circle("⏭", 29, 0x1FFFFFFF, v -> media(1)));
+        ctl.setClipChildren(false);
+        ctl.addView(iconCircle(R.drawable.np_prev, 32, 0x1FFFFFFF, v -> media(-1)), lp(32, 32, 0, 0, 0, 0));
+        FrameLayout play = iconCircle(R.drawable.np_pause, 40, 0xFFFF4E45, v -> media(0));
+        npPlayBg = (GradientDrawable) play.getBackground();
+        npPlay = (ImageView) play.getChildAt(0);
+        ctl.addView(play, lp(40, 40, 12, 0, 12, 0));
+        ctl.addView(iconCircle(R.drawable.np_next, 32, 0x1FFFFFFF, v -> media(1)), lp(32, 32, 0, 0, 0, 0));
         View spacer = new View(this);
         ctl.addView(spacer, new LinearLayout.LayoutParams(0, 1, 1));
         npOpen = text("", 11, Color.WHITE, false);
@@ -869,13 +894,14 @@ public final class HomeActivity extends Activity {
         npKicker.setText(t.app.toUpperCase(new Locale("ru")) + (t.playing ? "     ●  СЕЙЧАС ИГРАЕТ" : "     НА ПАУЗЕ"));
         npTitle.setText(t.title);
         npArtist.setText(t.artist);
-        npPlay.setText(t.playing ? "⏸" : "▶");
+        npPlay.setImageResource(t.playing ? R.drawable.np_pause : R.drawable.np_play);
         npOpen.setText("Открыть " + t.app);
         String key = t.title + "|" + t.artist;
         if (!key.equals(npArt.getTag())) {
             npArt.setTag(key);
             npArt.setImageBitmap(t.art);
             setBackdrop(t.art);
+            tintMusicHero(t.art);
         }
         long dur = 0;
         MediaMetadata md = t.controller.getMetadata();
@@ -898,6 +924,76 @@ public final class HomeActivity extends Activity {
             npPos.setText("");
             npDur.setText("");
         }
+    }
+
+    /** The card, the progress line and the play button take the cover's colours, as Apple Music does. */
+    private void tintMusicHero(Bitmap art) {
+        int[] c = coverColours(art);
+        npCard.setColors(new int[]{c[0], c[1], c[0]});
+        npFillBg.setColor(c[2]);
+        npPlayBg.setColor(c[2]);
+        npKicker.setTextColor(c[3]);
+    }
+
+    /** {dark, mid, accent, kicker} from a cover: its most colourful hue, or a calm green without one. */
+    static int[] coverColours(Bitmap art) {
+        float[] best = {150f, 0.45f, 0.6f};
+        if (art != null) {
+            try {
+                Bitmap s = Bitmap.createScaledBitmap(art, 12, 12, true);
+                float score = -1;
+                float[] hsv = new float[3];
+                // hue buckets weighted by how colourful and how bright each pixel is
+                float[] weight = new float[12];
+                float[][] sum = new float[12][3];
+                for (int y = 0; y < 12; y++) for (int x = 0; x < 12; x++) {
+                    Color.colorToHSV(s.getPixel(x, y), hsv);
+                    float w = hsv[1] * (0.25f + hsv[2]);
+                    int b = Math.min(11, (int) (hsv[0] / 30f));
+                    weight[b] += w;
+                    sum[b][0] += hsv[0] * w;
+                    sum[b][1] += hsv[1] * w;
+                    sum[b][2] += hsv[2] * w;
+                }
+                for (int b = 0; b < 12; b++) {
+                    if (weight[b] > score && weight[b] > 0.001f) {
+                        score = weight[b];
+                        best = new float[]{sum[b][0] / weight[b], sum[b][1] / weight[b], sum[b][2] / weight[b]};
+                    }
+                }
+                if (best[1] < 0.12f) best = new float[]{best[0], 0.05f, best[2]};   // a grey cover stays grey
+            } catch (RuntimeException ignored) {
+                // keep the default
+            }
+        }
+        float h = best[0], sat = best[1];
+        int dark = Color.HSVToColor(new float[]{h, Math.min(sat, 0.65f), 0.13f});
+        int mid = Color.HSVToColor(new float[]{h, Math.min(sat, 0.6f), 0.24f});
+        int accent = Color.HSVToColor(new float[]{h, Math.max(sat > 0.12f ? 0.6f : 0f, Math.min(sat, 0.85f)), 0.92f});
+        int kicker = Color.HSVToColor(new float[]{h, Math.min(sat, 0.5f), 1f});
+        return new int[]{dark, mid, accent, kicker};
+    }
+
+    private FrameLayout iconCircle(int icon, int sizeDp, int colour, View.OnClickListener onClick) {
+        FrameLayout f = new FrameLayout(this);
+        GradientDrawable g = new GradientDrawable();
+        g.setShape(GradientDrawable.OVAL);
+        g.setColor(colour);
+        f.setBackground(g);
+        f.setFocusable(true);
+        f.setClickable(true);
+        f.setOnClickListener(onClick);
+        ImageView i = new ImageView(this);
+        i.setImageResource(icon);
+        i.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        int pad = px(sizeDp * 0.27f);
+        i.setPadding(pad, pad, pad, pad);
+        f.addView(i, new FrameLayout.LayoutParams(-1, -1));
+        f.setOnFocusChangeListener((v, has) -> {
+            g.setStroke(has ? px(2) : 0, Color.WHITE);
+            v.animate().scaleX(has ? 1.12f : 1f).scaleY(has ? 1.12f : 1f).setDuration(140).start();
+        });
+        return f;
     }
 
     private void media(int what) {

@@ -110,5 +110,5 @@ jobs:
             gh release upload "glass-v$ver" "flick-tv-glass-$ver.apk" --clobber -R "$GITHUB_REPOSITORY"
           else
             gh release create "glass-v$ver" "flick-tv-glass-$ver.apk" -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-              --title "Flick TV Glass $ver" --notes "Flick TV Glass $ver: a tvOS-style home screen beside Flick TV (needs Flick TV 2.8+). By Serhii Volkov (@sergvo1kov)."
+              --title "Glass TV $ver" --notes "Glass TV $ver: a tvOS-style home screen, standalone or beside Flick TV. By Serhii Volkov (@sergvo1kov)."
           fi

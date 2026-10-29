@@ -94,7 +94,6 @@ public final class MainActivity extends Activity {
     private SettingsPanel settings;
     private ProfilePanel profile;
     private KeysPanel keys;
-    private NowPlayingPanel npPanel;
     private volatile NowPlaying.Track track;
     private LinearLayout npCap;
     private ImageView npArt;
@@ -166,7 +165,6 @@ public final class MainActivity extends Activity {
         settings = new SettingsPanel(this, root, ui);
         profile = new ProfilePanel(this, root, ui);
         keys = new KeysPanel(this, root, ui);
-        npPanel = new NowPlayingPanel(this, root, ui);
         renderDock();
         if (dock.getChildCount() > 0) dock.getChildAt(0).requestFocus();
     }
@@ -209,7 +207,7 @@ public final class MainActivity extends Activity {
     boolean panelOpen() {
         return (control != null && control.isOpen()) || (weather != null && weather.isOpen())
                 || (settings != null && settings.isOpen()) || (profile != null && profile.isOpen())
-                || (keys != null && keys.isOpen()) || (npPanel != null && npPanel.isOpen());
+                || (keys != null && keys.isOpen());
     }
 
     void closePanels() {
@@ -218,15 +216,16 @@ public final class MainActivity extends Activity {
         if (settings != null) settings.close();
         if (profile != null) profile.close();
         if (keys != null) keys.close();
-        if (npPanel != null) npPanel.close();
     }
 
     NowPlaying.Track track() {
         return track;
     }
 
+    /** Now Playing opens the app that plays: Flick AirPlay for the phone, or the music app itself. */
     void openNowPlaying() {
-        npPanel.open();
+        NowPlaying.Track t = track;
+        launch(t == null ? "ua.volkov.airplay" : t.pkg);
     }
 
     void postDelayed(Runnable r, long ms) {
@@ -235,11 +234,7 @@ public final class MainActivity extends Activity {
 
     /** What plays, every two seconds (every second while Now Playing is open), off the main thread. */
     private void pollTrack() {
-        boolean open = npPanel != null && npPanel.isOpen();
-        if (npPolling || (!open && ++npTicks % 2 != 0)) {
-            if (open) npPanel.render();
-            return;
-        }
+        if (npPolling || ++npTicks % 2 != 0) return;
         npPolling = true;
         Context app = getApplicationContext();
         io.execute(() -> {
@@ -248,7 +243,6 @@ public final class MainActivity extends Activity {
                 npPolling = false;
                 track = t;
                 renderNowPlaying();
-                if (npPanel.isOpen()) npPanel.render();
                 if (control.isOpen()) control.renderTrack();
             });
         });
@@ -442,7 +436,7 @@ public final class MainActivity extends Activity {
         npText = ui.line("", 12, Ui.WHITE, false);
         npText.setMaxWidth(ui.px(380));
         npCap.addView(npText);
-        capsule(npCap, 18, v -> npPanel.open());
+        capsule(npCap, 18, v -> openNowPlaying());
         npCap.setVisibility(View.GONE);
         root.addView(npCap, ui.flp(-2, 36, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 35, 0, 0));
 

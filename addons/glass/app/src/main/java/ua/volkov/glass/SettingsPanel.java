@@ -53,7 +53,7 @@ final class SettingsPanel extends Panel {
         TextView head = ui.text("Настройки", 26, Ui.WHITE, true);
         head.setGravity(Gravity.CENTER);
         left.addView(head, ui.lp(-1, -2, 0, 0, 0, 0));
-        TextView by = ui.text("Flick TV Glass " + version() + "  ·  Serhii Volkov (@sergvo1kov)", 10, Ui.FAINT, false);
+        TextView by = ui.text("Glass TV " + version() + "  ·  Serhii Volkov (@sergvo1kov)", 10, Ui.FAINT, false);
         by.setGravity(Gravity.CENTER);
         left.addView(by, ui.lp(-1, -2, 0, 8, 0, 0));
         s.addView(left, new LinearLayout.LayoutParams(0, -1, 1));

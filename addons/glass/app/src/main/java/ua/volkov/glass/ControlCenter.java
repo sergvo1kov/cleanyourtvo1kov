@@ -204,7 +204,7 @@ final class ControlCenter extends Panel {
             close();
             a.background(() -> {
                 boolean ok = Data.sleep(a);
-                if (!ok) a.post(() -> Toast.makeText(a, "Сон доступен со службой «Flick TV Glass: кнопка Home»", Toast.LENGTH_LONG).show());
+                if (!ok) a.post(() -> Toast.makeText(a, "Сон доступен со службой «Glass TV: кнопка Home»", Toast.LENGTH_LONG).show());
             });
         }));
         LinearLayout torr = round(R.drawable.g_down, "TorrServe", v -> {

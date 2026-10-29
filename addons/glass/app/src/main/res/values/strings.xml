@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Flick TV Glass</string>
-    <string name="redirect_label">Flick TV Glass: кнопка Home</string>
-    <string name="redirect_desc">Кнопка Home открывает Flick TV Glass вместо Google TV. Панель Google TV (долгое нажатие Home) остаётся.</string>
+    <string name="app_name">Glass TV</string>
+    <string name="redirect_label">Glass TV: кнопка Home</string>
+    <string name="redirect_desc">Кнопка Home открывает Glass TV вместо Google TV. Панель Google TV (долгое нажатие Home) остаётся.</string>
 </resources>

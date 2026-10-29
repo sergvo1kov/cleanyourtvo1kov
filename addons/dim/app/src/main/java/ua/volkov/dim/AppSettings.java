@@ -41,7 +41,7 @@ final class AppSettings {
                 art ? "Фон с постером фильма: включён  →  выключить" : "Фон с постером фильма: выключен  →  включить",
                 "Панель Google TV (Google Home)",
                 "Настройки телевизора",
-                glass ? "Главный экран: Flick TV  →  Flick TV Glass" : "Flick TV Glass не установлен"};
+                glass ? "Главный экран: Flick TV  →  Glass TV" : "Glass TV не установлен"};
         new AlertDialog.Builder(a, dialogTheme(a))
                 .setTitle("Flick TV " + version(a) + "  ·  Serhii Volkov (@sergvo1kov)")
                 .setItems(items, (d, which) -> {
