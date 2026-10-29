@@ -584,8 +584,13 @@ public final class MainActivity extends Activity {
                 return true;
             });
             tile.setOnKeyListener((v, code, e) -> {
-                if (e.getAction() == KeyEvent.ACTION_DOWN && code == KeyEvent.KEYCODE_DPAD_DOWN && !appsShown) {
+                if (e.getAction() != KeyEvent.ACTION_DOWN) return false;
+                if (code == KeyEvent.KEYCODE_DPAD_DOWN && !appsShown) {
                     showApps(true);
+                    return true;
+                }
+                if (code == KeyEvent.KEYCODE_DPAD_UP && appsShown) {   // up from the apps: the home screen first
+                    showApps(false);
                     return true;
                 }
                 return false;
@@ -602,6 +607,18 @@ public final class MainActivity extends Activity {
         gi.setPadding(pad, pad, pad, pad);
         gear.addView(gi, new FrameLayout.LayoutParams(-1, -1));
         focusable(gear, v -> settings.open());
+        gear.setOnKeyListener((v, code, e) -> {
+            if (e.getAction() != KeyEvent.ACTION_DOWN) return false;
+            if (code == KeyEvent.KEYCODE_DPAD_DOWN && !appsShown) {
+                showApps(true);
+                return true;
+            }
+            if (code == KeyEvent.KEYCODE_DPAD_UP && appsShown) {
+                showApps(false);
+                return true;
+            }
+            return false;
+        });
         dock.addView(gear, new LinearLayout.LayoutParams(w, h));
         if (at >= 0 && at < dock.getChildCount()) dock.getChildAt(at).requestFocus();
     }
@@ -744,6 +761,15 @@ public final class MainActivity extends Activity {
             t.setGravity(Gravity.CENTER);
             t.setAlpha(0f);   // tvOS names only the focused app
             View tile = appTile(pkg, w, h, t);
+            if (i < 6) {
+                tile.setOnKeyListener((v, code, e) -> {
+                    if (e.getAction() == KeyEvent.ACTION_DOWN && code == KeyEvent.KEYCODE_DPAD_UP) {
+                        showApps(false);
+                        return true;
+                    }
+                    return false;
+                });
+            }
             tile.setOnClickListener(v -> launch(pkg));
             tile.setOnLongClickListener(v -> {
                 List<String> d = dockApps();
