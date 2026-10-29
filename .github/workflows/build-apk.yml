@@ -71,3 +71,18 @@ jobs:
           gh release delete latest-build -y --cleanup-tag -R "$GITHUB_REPOSITORY" || true
           gh release create latest-build out/tvhome.apk out/dim.apk -R "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" --title "Latest build ${GITHUB_SHA::7}" --notes "Built from ${GITHUB_SHA}" --prerelease
+      # Fork-only: a versioned Flick TV release (APK + installer zip), once per versionName.
+      - name: Publish the Flick TV version release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ver=$(sed -n 's/.*versionName "\(.*\)".*/\1/p' addons/dim/app/build.gradle)
+          [ -n "$ver" ] || exit 0
+          if gh release view "v$ver" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then echo "v$ver exists"; exit 0; fi
+          mkdir -p "rel/Flick-TV-$ver"
+          cp addons/dim/app/build/outputs/apk/release/app-release.apk "rel/Flick-TV-$ver/flick-tv-$ver.apk"
+          cp addons/dim/install/install.ps1 addons/dim/install/УСТАНОВИТЬ.bat addons/dim/install/ИНСТРУКЦИЯ.txt "rel/Flick-TV-$ver/"
+          sed -i "s/flick-tv-2.0.apk/flick-tv-$ver.apk/" "rel/Flick-TV-$ver/install.ps1"
+          (cd rel && zip -qr "Flick-TV-$ver.zip" "Flick-TV-$ver")
+          gh release create "v$ver" "rel/Flick-TV-$ver.zip" "rel/Flick-TV-$ver/flick-tv-$ver.apk" -R "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" --title "Flick TV $ver" --notes-file addons/dim/RELEASE_NOTES.md
