@@ -94,6 +94,13 @@ public final class MainActivity extends Activity {
     private SettingsPanel settings;
     private ProfilePanel profile;
     private KeysPanel keys;
+    private NowPlayingPanel npPanel;
+    private volatile NowPlaying.Track track;
+    private LinearLayout npCap;
+    private ImageView npArt;
+    private TextView npText;
+    private int npTicks;
+    private boolean npPolling;
     private String statusKey;
 
     private final SimpleDateFormat clock = new SimpleDateFormat("H:mm", Locale.getDefault());
@@ -102,6 +109,7 @@ public final class MainActivity extends Activity {
         @Override
         public void run() {
             renderCapsules();
+            pollTrack();
             main.postDelayed(this, 1000);
         }
     };
@@ -158,6 +166,7 @@ public final class MainActivity extends Activity {
         settings = new SettingsPanel(this, root, ui);
         profile = new ProfilePanel(this, root, ui);
         keys = new KeysPanel(this, root, ui);
+        npPanel = new NowPlayingPanel(this, root, ui);
         renderDock();
         if (dock.getChildCount() > 0) dock.getChildAt(0).requestFocus();
     }
@@ -200,7 +209,7 @@ public final class MainActivity extends Activity {
     boolean panelOpen() {
         return (control != null && control.isOpen()) || (weather != null && weather.isOpen())
                 || (settings != null && settings.isOpen()) || (profile != null && profile.isOpen())
-                || (keys != null && keys.isOpen());
+                || (keys != null && keys.isOpen()) || (npPanel != null && npPanel.isOpen());
     }
 
     void closePanels() {
@@ -209,6 +218,67 @@ public final class MainActivity extends Activity {
         if (settings != null) settings.close();
         if (profile != null) profile.close();
         if (keys != null) keys.close();
+        if (npPanel != null) npPanel.close();
+    }
+
+    NowPlaying.Track track() {
+        return track;
+    }
+
+    void openNowPlaying() {
+        npPanel.open();
+    }
+
+    void postDelayed(Runnable r, long ms) {
+        main.postDelayed(r, ms);
+    }
+
+    /** What plays, every two seconds (every second while Now Playing is open), off the main thread. */
+    private void pollTrack() {
+        boolean open = npPanel != null && npPanel.isOpen();
+        if (npPolling || (!open && ++npTicks % 2 != 0)) {
+            if (open) npPanel.render();
+            return;
+        }
+        npPolling = true;
+        Context app = getApplicationContext();
+        io.execute(() -> {
+            NowPlaying.Track t = NowPlaying.current(app);
+            main.post(() -> {
+                npPolling = false;
+                track = t;
+                renderNowPlaying();
+                if (npPanel.isOpen()) npPanel.render();
+                if (control.isOpen()) control.renderTrack();
+            });
+        });
+    }
+
+    private android.graphics.Bitmap npShownArt;
+    private String npShownText;
+
+    /** The Now Playing capsule at the top, as tvOS shows what plays: cover, track and artist. */
+    private void renderNowPlaying() {
+        NowPlaying.Track t = track;
+        boolean show = t != null;
+        if (show != (npCap.getVisibility() == View.VISIBLE)) {
+            npCap.setVisibility(show ? View.VISIBLE : View.GONE);
+            if (show) {
+                npCap.setAlpha(0f);
+                npCap.animate().alpha(1f).setDuration(300).start();
+            }
+        }
+        if (!show) return;
+        String txt = (t.playing ? "" : "❚❚  ") + t.title + (t.artist.isEmpty() ? "" : "  ·  " + t.artist);
+        if (!txt.equals(npShownText)) {
+            npShownText = txt;
+            npText.setText(txt);
+        }
+        if (t.art != npShownArt) {
+            npShownArt = t.art;
+            if (t.art != null) npArt.setImageBitmap(t.art);
+            else npArt.setImageResource(R.drawable.g_airplay);
+        }
     }
 
     void openKeys() {
@@ -359,6 +429,22 @@ public final class MainActivity extends Activity {
             return true;
         });
         root.addView(statusCap, ui.flp(-2, 36, Gravity.END | Gravity.TOP, 0, 35, 52, 0));
+
+        // Now Playing: shown only while something plays
+        npCap = new LinearLayout(this);
+        npCap.setGravity(Gravity.CENTER_VERTICAL);
+        npCap.setPadding(ui.px(4), 0, ui.px(16), 0);
+        npArt = new ImageView(this);
+        npArt.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        npArt.setBackground(ui.round(0xFF3A3A3C, 14));
+        npArt.setClipToOutline(true);
+        npCap.addView(npArt, ui.lp(28, 28, 0, 0, 10, 0));
+        npText = ui.line("", 12, Ui.WHITE, false);
+        npText.setMaxWidth(ui.px(380));
+        npCap.addView(npText);
+        capsule(npCap, 18, v -> npPanel.open());
+        npCap.setVisibility(View.GONE);
+        root.addView(npCap, ui.flp(-2, 36, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 35, 0, 0));
 
         // all apps, under the dock when it moves up
         appsWrap = new FrameLayout(this);
@@ -1002,6 +1088,7 @@ public final class MainActivity extends Activity {
         stageFocus.setFocusable(true);
         weatherCap.setFocusable(true);
         statusCap.setFocusable(true);
+        npCap.setFocusable(true);
         if (dock.getChildCount() > 0) dock.getChildAt(0).requestFocus();
     }
 

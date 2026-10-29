@@ -14,7 +14,7 @@ import java.util.List;
 /** What a music app is playing right now, through Android's media sessions. */
 final class NowPlaying {
     /** Preferred players, in order; any other app with a media session is used after these. */
-    static final String[] MUSIC = {"com.google.android.youtube.tvmusic", "com.apple.android.music",
+    static final String[] MUSIC = {"ua.volkov.airplay", "com.google.android.youtube.tvmusic", "com.apple.android.music",
             "com.google.android.apps.youtube.music"};
 
     static final class Track {

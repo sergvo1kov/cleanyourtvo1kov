@@ -38,6 +38,11 @@ final class ControlCenter extends Panel {
     private LinearLayout lights;
     private View first;
     private FrameLayout avatar;
+    private LinearLayout npRow;
+    private ImageView npCover;
+    private TextView npTitle, npArtist;
+    private FrameLayout npPlay;
+    private android.graphics.Bitmap npArtShown;
     private ImageView avatarImg;
 
     ControlCenter(MainActivity a, FrameLayout root, Ui ui) {
@@ -82,6 +87,45 @@ final class ControlCenter extends Panel {
         avatar.setOnClickListener(v -> a.openProfile());
         head.addView(avatar, ui.lp(34, 34, 0, 0, 0, 0));
         s.addView(head, ui.lp(-1, -2, 4, 0, 4, 12));
+
+        // Now Playing, when something plays: OK opens it full screen, the round button plays or pauses
+        npRow = new LinearLayout(a);
+        npRow.setGravity(Gravity.CENTER_VERTICAL);
+        npRow.setClipChildren(false);
+        LinearLayout np = new LinearLayout(a);
+        np.setGravity(Gravity.CENTER_VERTICAL);
+        np.setPadding(ui.px(8), 0, ui.px(12), 0);
+        npCover = new ImageView(a);
+        npCover.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        npCover.setBackground(ui.round(0xFF3A3A3C, 8));
+        npCover.setClipToOutline(true);
+        np.addView(npCover, ui.lp(44, 44, 0, 0, 10, 0));
+        LinearLayout words = new LinearLayout(a);
+        words.setOrientation(LinearLayout.VERTICAL);
+        npTitle = ui.line("", 12, Ui.WHITE, true);
+        npArtist = ui.line("", 10.5f, Ui.SUB, false);
+        words.addView(npTitle);
+        words.addView(npArtist, ui.lp(-2, -2, 0, 2, 0, 0));
+        np.addView(words, new LinearLayout.LayoutParams(0, -2, 1));
+        ui.plate(np, 14, v -> {
+            close();
+            a.post(a::openNowPlaying);
+        });
+        npRow.addView(np, new LinearLayout.LayoutParams(0, ui.px(60), 1));
+        npPlay = ui.roundButton(R.drawable.g_pause, 48, v -> {
+            NowPlaying.Track t = a.track();
+            if (t == null || t.controller == null) return;
+            try {
+                if (t.playing) t.controller.getTransportControls().pause();
+                else t.controller.getTransportControls().play();
+            } catch (RuntimeException ignored) {
+                // the player went away
+            }
+        });
+        npRow.addView(npPlay, ui.lp(48, 48, 10, 0, 0, 0));
+        npRow.setVisibility(View.GONE);
+        s.addView(npRow, ui.lp(-1, -2, 0, 0, 0, 10));
+        renderTrack();
 
         // StandBy big tile + network and Bluetooth
         LinearLayout r1 = row();
@@ -153,14 +197,14 @@ final class ControlCenter extends Panel {
         });
         s.addView(alert, ui.lp(-1, -2, 0, 0, 0, 12));
 
-        // round buttons: sleep, TorrServe, refresh, back to Flick TV
+        // round buttons: sleep, TorrServe, AirPlay, back to Flick TV
         LinearLayout r3 = row();
         r3.setGravity(Gravity.CENTER_VERTICAL);
         r3.addView(round(R.drawable.g_moon, "Сон", v -> {
             close();
             a.background(() -> {
                 boolean ok = Data.sleep(a);
-                if (!ok) a.post(() -> Toast.makeText(a, "Сон доступен со службой «Flick TV: кнопка Home»", Toast.LENGTH_LONG).show());
+                if (!ok) a.post(() -> Toast.makeText(a, "Сон доступен со службой «Flick TV Glass: кнопка Home»", Toast.LENGTH_LONG).show());
             });
         }));
         LinearLayout torr = round(R.drawable.g_down, "TorrServe", v -> {
@@ -169,9 +213,10 @@ final class ControlCenter extends Panel {
         });
         torrSub = (TextView) torr.getChildAt(1);
         r3.addView(torr);
-        r3.addView(round(R.drawable.g_refresh, "Обновить", v -> {
-            a.background(() -> Data.refresh(a));
-            Toast.makeText(a, "Обновляю тревоги, погоду и Smart Life", Toast.LENGTH_SHORT).show();
+        // AirPlay: its own app (Flick AirPlay); refreshing lives on the alert plate above and in Settings
+        r3.addView(round(R.drawable.g_airplay, "AirPlay", v -> {
+            close();
+            a.launch("ua.volkov.airplay");
         }));
         r3.addView(round(R.drawable.g_swap, "Flick TV", v -> {
             close();
@@ -197,6 +242,21 @@ final class ControlCenter extends Panel {
         a.post(() -> {
             if (first != null) first.requestFocus();
         });
+    }
+
+    void renderTrack() {
+        if (npRow == null) return;
+        NowPlaying.Track t = a.track();
+        npRow.setVisibility(t == null ? View.GONE : View.VISIBLE);
+        if (t == null) return;
+        npTitle.setText(t.title);
+        npArtist.setText(t.artist.isEmpty() ? t.app : t.artist);
+        ((ImageView) npPlay.getChildAt(0)).setImageResource(t.playing ? R.drawable.g_pause : R.drawable.g_play);
+        if (t.art != npArtShown) {
+            npArtShown = t.art;
+            if (t.art != null) npCover.setImageBitmap(t.art);
+            else npCover.setImageResource(R.drawable.g_airplay);
+        }
     }
 
     void render() {

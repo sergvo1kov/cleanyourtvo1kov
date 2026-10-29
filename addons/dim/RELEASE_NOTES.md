@@ -1,4 +1,8 @@
-**Flick TV 2.9** — a home screen for Android TV / Google TV by Serhii Volkov (@sergvo1kov), built on CleanYourTV.
+**Flick TV 3.0** — a home screen for Android TV / Google TV by Serhii Volkov (@sergvo1kov), built on CleanYourTV.
+
+**New in 3.0: AirPlay**
+- An AirPlay button in the bottom row (added once, next to the lights) opens Flick AirPlay, the separate receiver app; it shows the track while the phone plays.
+- What plays over AirPlay shows as Now Playing, like any music app.
 
 **New in 2.9: two independent home screens**
 - Flick TV Glass now keeps its own keys and fetches its own data, so either app works with the other removed. Glass can copy Flick TV's keys once ("Импорт из Flick TV").

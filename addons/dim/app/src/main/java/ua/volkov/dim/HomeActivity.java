@@ -63,6 +63,7 @@ public final class HomeActivity extends Activity {
             "com.apple.atve.androidtv.appletv", "com.amazon.amazonvideo.livingroom",
             "com.google.android.youtube.tvmusic", "com.apple.android.music", "org.videolan.vlc"};
     private static final String TORRSERVE = "ru.yourok.torrserve";
+    static final String AIRPLAY = "ua.volkov.airplay";   // Flick AirPlay, its own app
     private static final int MAX_FAVS = 12;
     /** Kept installed but not listed: the previous launcher (a fallback home) and the stock Google TV home. */
     private static final java.util.Set<String> HIDDEN = new java.util.HashSet<>(java.util.Arrays.asList(
@@ -1486,6 +1487,7 @@ public final class HomeActivity extends Activity {
         String saved = Store.prefs(this).getString(Store.QUICK, "");
         if (!saved.isEmpty()) {
             for (String sp : saved.split(",")) if (!sp.isEmpty()) out.add(sp);
+            addAirPlayOnce(out);
             return out;
         }
         // first run: first HDMI, first switch, first sensor, internet, TorrServe, settings
@@ -1503,6 +1505,24 @@ public final class HomeActivity extends Activity {
         out.add("torr");
         out.add("settings");
         return out;
+    }
+
+    /** Flick AirPlay arrived after the row was set up: put its button once next to the lights. */
+    private void addAirPlayOnce(List<String> out) {
+        SharedPreferences p = Store.prefs(this);
+        if (p.getBoolean("quick_airplay", false) || launchIntent(AIRPLAY) == null) return;
+        p.edit().putBoolean("quick_airplay", true).apply();
+        if (out.contains("airplay")) return;
+        int at = 0;
+        for (int i = 0; i < out.size(); i++) if (out.get(i).startsWith("tuya:")) at = i + 1;
+        out.add(Math.min(at, out.size()), "airplay");
+        // the row holds six: the first spare fixed tile makes room
+        for (String spare : new String[]{"panel", "sources", "control", "net"}) {
+            if (out.size() <= MAX_TILES) break;
+            out.remove(spare);
+        }
+        while (out.size() > MAX_TILES) out.remove(out.size() - 2);
+        Store.prefs(this).edit().putString(Store.QUICK, TextUtils.join(",", out)).apply();
     }
 
     private void saveQuick() {
@@ -1540,6 +1560,7 @@ public final class HomeActivity extends Activity {
         out.add(new String[]{"sources", "Источники (выбор входа)", "fixed"});
         out.add(new String[]{"net", "Интернет и тест скорости", "fixed"});
         out.add(new String[]{"torr", "TorrServe", "fixed"});
+        out.add(new String[]{"airplay", "AirPlay", "fixed"});
         out.add(new String[]{"panel", "Панель Google TV (Google Home)", "fixed"});
         out.add(new String[]{"control", "Центр управления", "fixed"});
         out.add(new String[]{"settings", "Настройки", "fixed"});
@@ -1669,6 +1690,12 @@ public final class HomeActivity extends Activity {
                 String tv = torrVersion;
                 t.subT.setText(launchIntent(TORRSERVE) == null ? "не установлен"
                         : tv == null ? "не отвечает  ·  OK — открыть" : "Работает  ·  " + tv);
+            } else if ("airplay".equals(sp)) {
+                t.icon.setText("◬");
+                t.name.setText("AirPlay");
+                NowPlaying.Track tr = track;
+                t.subT.setText(launchIntent(AIRPLAY) == null ? "не установлен"
+                        : tr != null && AIRPLAY.equals(tr.pkg) ? (tr.playing ? "♪ " : "❚❚ ") + tr.title : "Готов  ·  OK — открыть");
             } else if ("panel".equals(sp)) {
                 t.icon.setText("⌂");
                 t.name.setText("Google Home");
@@ -1695,6 +1722,7 @@ public final class HomeActivity extends Activity {
         else if (sp.startsWith("tuya:")) toggleTuya(t, sp.substring(5));
         else if ("net".equals(sp) || "control".equals(sp)) startActivity(new Intent(this, DimActivity.class));
         else if ("torr".equals(sp)) launch(TORRSERVE);
+        else if ("airplay".equals(sp)) launch(AIRPLAY);
         else if ("panel".equals(sp)) openGoogleTvPanel();
         else if ("sources".equals(sp)) openInput(null);
         else openPanel();
