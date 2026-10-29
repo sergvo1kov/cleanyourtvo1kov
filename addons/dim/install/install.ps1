@@ -1,4 +1,4 @@
-﻿# Flick TV 2.0 - установка на Android TV / Google TV. Автор: Serhii Volkov (@sergvo1kov).
+﻿# Flick TV - установка на Android TV / Google TV. Автор: Serhii Volkov (@sergvo1kov).
 $ErrorActionPreference = "Continue"
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $adb = $null

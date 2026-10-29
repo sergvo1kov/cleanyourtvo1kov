@@ -3,7 +3,7 @@ FLICK TV
 Автор: Serhii Volkov (@sergvo1kov) · github.com/sergvo1kov/cleanyourtvo1kov
 
 ЧТО ВНУТРИ
-  flick-tv-2.0.apk    приложение (пакет ua.volkov.dim, Android 8+)
+  flick-tv-X.Y.apk    приложение (пакет ua.volkov.dim, Android 8+)
   УСТАНОВИТЬ.bat      установка и настройка в один клик (Windows)
   install.ps1         сам скрипт установки
   ВЕРНУТЬ-GOOGLE-TV.bat  вернуть телевизор к стандартному Google TV (reset-google-tv.ps1)
@@ -43,7 +43,11 @@ FLICK TV
   OK на большой плашке тревоги — обновить данные о тревогах сразу.
 
 ЕСЛИ HOME ОТКРЫВАЕТ GOOGLE TV
-  Запустить ПОЧИНИТЬ-HOME.bat (в папке tvsetup) или ещё раз УСТАНОВИТЬ.bat.
+  Ещё раз запустить УСТАНОВИТЬ.bat: служба кнопки Home включится заново.
+
+AIRPLAY
+  Приёмник AirPlay — отдельное приложение «AirPlay» (пакет ua.volkov.airplay), ставится из своей папки.
+  Во Flick TV у него кнопка в нижнем ряду, а то, что играет с телефона, видно в «Сейчас играет».
 
 ВОЗВРАТ В НОЛЬ (стандартный Google TV)
   ВЕРНУТЬ-GOOGLE-TV.bat: главный экран снова Google TV, все отключённые приложения включаются,
