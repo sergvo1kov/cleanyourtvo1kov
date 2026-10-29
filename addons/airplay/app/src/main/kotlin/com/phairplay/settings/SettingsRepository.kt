@@ -108,7 +108,7 @@ class SettingsRepository(private val context: Context) {
     private fun Preferences.toAppSettings(): AppSettings = AppSettings(
         displayName        = this[Keys.DISPLAY_NAME]            ?: "",
         airPlayEnabled     = this[Keys.AIRPLAY_ENABLED]         ?: true,
-        miracastEnabled    = this[Keys.MIRACAST_ENABLED]        ?: false,
+        miracastEnabled    = false,   // Flick AirPlay: AirPlay only (Miracast was never finished upstream)
         castEnabled        = this[Keys.CAST_ENABLED]            ?: false,
         airPlayPinAuthEnabled = this[Keys.AIRPLAY_PIN_AUTH]     ?: false,
         airPlay2VideoTransport = this[Keys.AIRPLAY2_VIDEO]      ?: false,

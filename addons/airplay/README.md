@@ -5,7 +5,12 @@ TV, and keeps working with Flick TV and Flick TV Glass removed. The launchers on
 
 Based on [PhairPlay](https://github.com/mazer666/PhairPlay) (Apache License 2.0, see `LICENSE`; the upstream
 README and changelog are kept as `UPSTREAM-README.md` and `UPSTREAM-CHANGELOG.md`). Changes here: package
-`ua.volkov.airplay`, the name "Flick AirPlay", ARM-only native libraries, and the fork's signing key in CI.
+`ua.volkov.airplay`, the name "Flick AirPlay" (announced as the TV's name without "TV"), ARM-only native
+libraries, the fork's signing key in CI; no Google Cast SDK and no Miracast (so no location or Wi-Fi Direct
+permissions); start on boot; the track as a system media session (launchers' Now Playing, their buttons
+reach the phone); the phone's volume slider moves the TV's volume; OK, Left and Right on the music screen
+play/pause and skip, with a sign popping over the cover; a classic sender's pause stops the track clock;
+a still backdrop instead of a drifting one; info-level logs in release builds.
 
 What it does (from upstream): screen mirroring from iPhone, iPad and Mac, AirPlay audio (ALAC, AAC), track
 name and cover art, the TV remote controlling the phone's playback, photos. Local network only; no ads, no

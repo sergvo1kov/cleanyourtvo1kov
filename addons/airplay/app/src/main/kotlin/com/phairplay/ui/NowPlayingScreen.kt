@@ -397,7 +397,8 @@ class NowPlayingScreen @JvmOverloads constructor(
 
     override fun onVisibilityChanged(changedView: View, visibility: Int) {
         super.onVisibilityChanged(changedView, visibility)
-        if (visibility == View.VISIBLE && isShown) startKenBurns() else stopKenBurns()
+        // Flick AirPlay: the backdrop stays still; a full-screen picture drifting for minutes kept the TV's GPU busy
+        stopKenBurns()
     }
 
     override fun onDetachedFromWindow() {

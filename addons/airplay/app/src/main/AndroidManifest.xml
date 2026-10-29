@@ -35,11 +35,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
 
-    <!-- Miracast (Wi-Fi Direct / Wi-Fi P2P) -->
-    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" />
+    <!-- Flick AirPlay: no Miracast, so no Wi-Fi Direct or location permissions. -->
 
     <!--
         Lets the service start MainActivity from the background when a screen-mirror session begins while
